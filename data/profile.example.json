@@ -1,0 +1,26 @@
+{
+  "name": "Charan",
+  "dob": "2004-01-01",
+  "age": 21,
+  "education": {
+    "degree": "B.Tech in Artificial Intelligence & Machine Learning",
+    "institution": "Engineering College / University",
+    "year": "3rd Year"
+  },
+  "interests": [
+    "Machine Learning",
+    "Deep Learning",
+    "Autonomous Agents",
+    "Robotics",
+    "Algorithmic Trading"
+  ],
+  "current_projects": [
+    "MIKE - Multimodal Autonomous Agentic Desktop Assistant"
+  ],
+  "preferences": {
+    "wake_word_enabled": true,
+    "voice_speed": 1.0,
+    "hud_theme": "cyber_glassmorphism",
+    "audio_feedback": true
+  }
+}

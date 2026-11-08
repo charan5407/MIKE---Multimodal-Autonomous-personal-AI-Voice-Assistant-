@@ -1,0 +1,47 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Environment and Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Personal and Local Data (Strict Privacy)
+data/*.local.json
+data/profile.local.json
+data/contacts.local.json
+data/secret_key.key
+whatsapp_session/
+.playwright/
+
+# Logs and Audit Trails
+logs/
+*.log
+*.audit.jsonl
+
+# Local Models and Cache
+models/
+piper_models/
+openwakeword_models/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node / Desktop App build artifacts
+desktop/node_modules/
+desktop/dist/
+desktop/src-tauri/target/
+
+# OS specific files
+Thumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+.DS_Store
