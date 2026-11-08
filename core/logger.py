@@ -106,3 +106,4 @@ def setup_logger(name: str = "MIKE") -> logging.Logger:
 
 # Global logger instance
 logger = setup_logger("MIKE")
+

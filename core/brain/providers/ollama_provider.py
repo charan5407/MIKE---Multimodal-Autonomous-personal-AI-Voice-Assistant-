@@ -151,3 +151,4 @@ class OllamaProvider(BaseLLMProvider):
                             yield token
                     except Exception as e:
                         logger.debug(f"Error parsing Ollama stream chunk: {e}")
+

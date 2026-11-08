@@ -79,3 +79,4 @@ class BaseLLMProvider(ABC):
     ) -> AsyncIterator[str]:
         """Stream chunks of text from the LLM."""
         pass
+

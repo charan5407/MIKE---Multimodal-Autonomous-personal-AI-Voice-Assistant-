@@ -181,3 +181,4 @@ class GeminiProvider(BaseLLMProvider):
         async for chunk in stream:
             if chunk.text:
                 yield chunk.text
+

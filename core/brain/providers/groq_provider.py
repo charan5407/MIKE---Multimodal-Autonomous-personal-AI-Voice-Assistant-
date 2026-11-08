@@ -150,3 +150,4 @@ class GroqProvider(BaseLLMProvider):
             delta = chunk.choices[0].delta
             if delta and delta.content:
                 yield delta.content
+
