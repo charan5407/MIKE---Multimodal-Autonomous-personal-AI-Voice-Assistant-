@@ -53,3 +53,4 @@ class GetBrightnessTool(BaseTool):
             return ToolResult(success=True, output=f"Current display brightness is {val}%.")
         except Exception as e:
             return ToolResult(success=False, error=f"Error reading brightness: {e}")
+

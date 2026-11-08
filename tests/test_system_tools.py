@@ -132,3 +132,4 @@ async def test_app_and_lock_schemas():
     assert tool_registry.get("open_app") is not None
     assert tool_registry.get("set_volume") is not None
     assert tool_registry.get("delete_file") is not None
+

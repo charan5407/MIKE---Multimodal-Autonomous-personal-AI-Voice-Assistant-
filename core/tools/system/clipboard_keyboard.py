@@ -136,3 +136,4 @@ class ScreenshotTool(BaseTool):
             )
         except Exception as e:
             return ToolResult(success=False, error=f"Failed to capture screenshot: {e}")
+

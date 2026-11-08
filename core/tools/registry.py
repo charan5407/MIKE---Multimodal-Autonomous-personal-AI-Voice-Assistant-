@@ -12,7 +12,6 @@ from core.brain.base import ToolDefinition
 from core.logger import logger
 from core.security.audit import audit_logger
 from core.security.permissions import PermissionTier, permission_manager
-from core.server.ws import ws_manager
 from core.tools.base import BaseTool, ToolResult
 from core.tools.cancellation import CancellationToken, root_cancellation_token
 
@@ -49,7 +48,11 @@ class ToolRegistry:
             "timestamp": time.time(),
         }
         # Notify WebSocket UI clients
-        await ws_manager.broadcast("tool_activity", payload)
+        try:
+            from core.server.ws import ws_manager
+            await ws_manager.broadcast("tool_activity", payload)
+        except Exception:
+            pass
 
         for cb in self._activity_callbacks:
             try:

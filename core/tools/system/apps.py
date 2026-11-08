@@ -145,3 +145,4 @@ class ListAppsTool(BaseTool):
             return ToolResult(success=True, output={"running_apps": sorted_apps, "count": len(sorted_apps)})
         except Exception as e:
             return ToolResult(success=False, error=f"Error listing running apps: {e}")
+

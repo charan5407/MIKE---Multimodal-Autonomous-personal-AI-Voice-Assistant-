@@ -13,8 +13,11 @@ from typing import Callable, List, Optional
 import numpy as np
 
 from core.brain.base import ChatMessage
+from core.brain.intent_router import intent_router
 from core.brain.router import router as llm_router
 from core.logger import logger
+from core.tools.cancellation import root_cancellation_token
+from core.tools.registry import tool_registry
 from core.voice.audio_stream import AudioStreamManager
 from core.voice.stt import stt_engine
 from core.voice.tts import tts_engine
@@ -182,13 +185,17 @@ class VoiceCoordinator:
             self.audio.stop()
             self._is_running = False
 
-    async def _handle_user_speech(self, audio: np.ndarray):
-        """Transcribes speech, verifies stop commands, queries LLM, and speaks response."""
+    async def _handle_user_speech(self, audio: Optional[np.ndarray] = None, direct_text: Optional[str] = None):
+        """Processes voice speech or direct text, checks stop/intent commands, queries tools or LLM."""
         self.set_state(AssistantState.THINKING)
 
-        # 1. Transcribe with faster-whisper (CUDA / CPU)
-        text, latency = self.stt.transcribe(audio)
-        logger.info(f"Transcribed ({latency:.0f}ms): '{text}'")
+        text = ""
+        if direct_text:
+            text = direct_text.strip()
+        elif audio is not None:
+            # 1. Transcribe with faster-whisper (CUDA / CPU)
+            text, latency = self.stt.transcribe(audio)
+            logger.info(f"Transcribed ({latency:.0f}ms): '{text}'")
 
         if not text or not text.strip():
             self.set_state(AssistantState.IDLE)
@@ -202,7 +209,40 @@ class VoiceCoordinator:
             self.stop_all(reason=f"Voice command: '{text}'")
             return
 
-        # 3. Stream from Brain LLM Router
+        # 3. Fast-Path Intent Router Check (<10ms for media, system, WhatsApp, apps)
+        intent = intent_router.match(text)
+        if intent:
+            logger.info(f"Fast-path intent matched: {intent.intent_name} -> {intent.tool_name}")
+            self._conversation_history.append(ChatMessage(role="user", content=text))
+            self.set_state(AssistantState.SPEAKING)
+
+            if intent.intent_name == "cancel_action":
+                response_text = "Action cancelled."
+            elif intent.requires_confirmation:
+                response_text = intent.confirmation_prompt or "Please confirm this action."
+            else:
+                # Direct tool execution
+                tool_res = await tool_registry.execute(
+                    intent.tool_name,
+                    cancel_token=root_cancellation_token,
+                    **intent.parameters,
+                )
+                response_text = tool_res.message if tool_res.success else f"I couldn't complete that: {tool_res.error}"
+
+            if self.on_response_chunk:
+                self.on_response_chunk(response_text)
+
+            self._conversation_history.append(ChatMessage(role="assistant", content=response_text))
+            try:
+                await self.tts.speak(response_text)
+            except Exception as e:
+                logger.error(f"TTS error during intent response: {e}")
+            finally:
+                if not self._cancel_token.is_set():
+                    self.set_state(AssistantState.IDLE)
+            return
+
+        # 4. Stream from Brain LLM Router (for general queries / complex planning)
         self._conversation_history.append(ChatMessage(role="user", content=text))
         self.set_state(AssistantState.SPEAKING)
 

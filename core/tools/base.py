@@ -18,6 +18,19 @@ class ToolResult(BaseModel):
     error: Optional[str] = None
     reversible: bool = False
     rollback_data: Optional[Dict[str, Any]] = None
+    requires_confirmation: bool = False
+    confirmation_prompt: Optional[str] = None
+    data: Optional[Dict[str, Any]] = None
+
+    @property
+    def message(self) -> str:
+        if isinstance(self.output, str):
+            return self.output
+        if isinstance(self.output, dict) and "text" in self.output:
+            return self.output["text"]
+        if self.error:
+            return self.error
+        return str(self.output or "")
 
 
 class BaseTool(ABC):

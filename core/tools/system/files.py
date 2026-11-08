@@ -124,3 +124,4 @@ class DeleteFileTool(BaseTool):
             )
         except Exception as e:
             return ToolResult(success=False, error=f"Failed to delete file: {e}")
+

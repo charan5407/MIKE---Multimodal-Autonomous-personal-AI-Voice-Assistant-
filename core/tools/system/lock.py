@@ -41,3 +41,4 @@ class LockWorkstationTool(BaseTool):
         except Exception as e:
             logger.error(f"Error locking workstation: {e}")
             return ToolResult(success=False, error=f"Lock workstation failed: {e}")
+

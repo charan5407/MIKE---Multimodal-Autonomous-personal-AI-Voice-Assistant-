@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     system_prompt_path: Path = BASE_DIR / "prompts" / "mike.md"
     profile_path: Path = BASE_DIR / "data" / "profile.local.json"
     profile_example_path: Path = BASE_DIR / "data" / "profile.example.json"
+    contacts_path: Path = BASE_DIR / "data" / "contacts.local.json"
+    contacts_example_path: Path = BASE_DIR / "data" / "contacts.example.json"
 
     # LLM Router & Providers
     llm_primary_provider: str = Field(default="ollama", alias="LLM_PRIMARY_PROVIDER")

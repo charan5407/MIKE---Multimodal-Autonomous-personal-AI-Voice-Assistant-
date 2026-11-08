@@ -4,6 +4,7 @@ Exposes REST endpoints and WebSocket stream for Desktop UI (Tauri / Electron).
 """
 
 import asyncio
+import json
 from contextlib import asynccontextmanager
 from typing import Any, Dict, Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -50,6 +51,23 @@ async def rms_broadcast_loop():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Register all automation tools (system, media, whatsapp)
+    from core.tools.media import register_media_tools
+    from core.tools.registry import tool_registry
+    from core.tools.system import register_system_tools
+    from core.tools.whatsapp import register_whatsapp_tools
+
+    register_system_tools()
+    register_media_tools()
+    register_whatsapp_tools()
+
+    # Wire tool execution broadcasts to WebSocket
+    tool_registry.set_activity_callback(
+        lambda event, data: asyncio.create_task(
+            ws_manager.broadcast("tool_activity", {"event": event, "data": data})
+        )
+    )
+
     # Startup: wire up coordinator callbacks to WebSocket
     voice_coordinator.on_state_change = lambda s: asyncio.create_task(
         ws_manager.broadcast("state_change", {"state": s.value})
@@ -143,9 +161,9 @@ async def action_chat(req: ChatRequest):
     await ws_manager.broadcast("transcript", {"text": req.message, "is_final": True})
     await ws_manager.broadcast("state_change", {"state": AssistantState.THINKING.value})
 
-    # Forward to voice coordinator speech handler logic
+    # Forward to voice coordinator speech handler logic with direct_text
     asyncio.create_task(
-        voice_coordinator._handle_user_speech(None)  # or direct LLM query
+        voice_coordinator._handle_user_speech(audio=None, direct_text=req.message)
     )
     return {"status": "processing", "query": req.message}
 
