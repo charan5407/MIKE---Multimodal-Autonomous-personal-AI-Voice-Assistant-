@@ -110,3 +110,4 @@ export const CenterpiecePreview: React.FC<CenterpiecePreviewProps> = ({ voiceSta
     </div>
   );
 };
+

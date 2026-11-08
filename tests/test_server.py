@@ -76,3 +76,4 @@ async def test_stop_and_push_to_talk_actions():
         stop_res = await client.post("/api/action/stop")
         assert stop_res.status_code == 200
         assert voice_coordinator.state in [AssistantState.STOPPED, AssistantState.IDLE]
+

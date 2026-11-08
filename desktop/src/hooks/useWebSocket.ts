@@ -91,3 +91,4 @@ export function useWebSocket(url = 'ws://127.0.0.1:8765/ws'): UseWebSocketReturn
 
   return { isConnected, voiceState, rms, transcript, response, sendAction };
 }
+

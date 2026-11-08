@@ -93,3 +93,4 @@ export const VoiceSearchBar: React.FC<VoiceSearchBarProps> = ({
     </div>
   );
 };
+

@@ -176,3 +176,4 @@ ipcMain.handle('set-start-on-boot', (event, flag) => {
   });
   return app.getLoginItemSettings().openAtLogin;
 });
+

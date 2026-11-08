@@ -18,3 +18,4 @@ cd desktop
 npm run electron:dev
 
 pause
+

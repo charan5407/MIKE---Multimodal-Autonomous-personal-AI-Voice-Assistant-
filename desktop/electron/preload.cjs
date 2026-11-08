@@ -6,3 +6,4 @@ contextBridge.exposeInMainWorld('mikeAPI', {
   toggleAlwaysOnTop: (flag) => ipcRenderer.invoke('toggle-always-on-top', flag),
   setStartOnBoot: (flag) => ipcRenderer.invoke('set-start-on-boot', flag),
 });
+

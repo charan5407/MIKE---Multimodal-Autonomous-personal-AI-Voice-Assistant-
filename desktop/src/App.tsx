@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useWebSocket } from './hooks/useWebSocket';
-import { CenterpiecePreview } from './components/CenterpiecePreview';
+import { HUDCanvas } from './components/hud/HUDCanvas';
 import { VoiceSearchBar } from './components/VoiceSearchBar';
 import { TranscriptPanel } from './components/TranscriptPanel';
 import { SettingsModal } from './components/SettingsModal';
@@ -10,6 +10,7 @@ import { Settings as SettingsIcon, Minus, X, ShieldCheck } from 'lucide-react';
 export const App: React.FC = () => {
   const { isConnected, voiceState, rms, transcript, response, sendAction } = useWebSocket();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [lowPowerMode, setLowPowerMode] = useState(false);
 
   const [settings, setSettings] = useState<AppSettings>({
     wake_word_enabled: true,
@@ -91,7 +92,19 @@ export const App: React.FC = () => {
         </div>
 
         {/* Action & Window Controls */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setLowPowerMode((prev) => !prev)}
+            title={lowPowerMode ? 'Low Power Mode: ON (Energy Saver)' : 'High Performance Mode (60 FPS)'}
+            className={`px-2 py-1 rounded text-[10px] font-mono border transition ${
+              lowPowerMode
+                ? 'bg-amber-500/10 text-amber-400 border-amber-500/40'
+                : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/40'
+            }`}
+          >
+            {lowPowerMode ? 'PWR-SAVER' : '60 FPS'}
+          </button>
+
           <button
             onClick={() => setIsSettingsOpen(true)}
             title="Settings"
@@ -120,7 +133,7 @@ export const App: React.FC = () => {
       <main className="flex-1 flex flex-col items-center justify-between p-6 overflow-y-auto">
         {/* Centerpiece 3D Orb Stage */}
         <div className="my-auto">
-          <CenterpiecePreview voiceState={voiceState} rms={rms} />
+          <HUDCanvas voiceState={voiceState} rms={rms} lowPowerMode={lowPowerMode} />
         </div>
 
         {/* Bottom Interactive Area */}
