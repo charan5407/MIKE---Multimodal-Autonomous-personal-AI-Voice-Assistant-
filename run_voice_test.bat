@@ -11,3 +11,4 @@ if not exist ".venv\Scripts\python.exe" (
 )
 ".venv\Scripts\python.exe" test_voice_cli.py
 pause
+

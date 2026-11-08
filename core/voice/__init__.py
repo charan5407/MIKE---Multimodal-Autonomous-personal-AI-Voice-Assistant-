@@ -22,3 +22,4 @@ __all__ = [
     "WakeWordDetector",
     "wake_detector",
 ]
+

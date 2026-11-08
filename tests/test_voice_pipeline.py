@@ -103,3 +103,4 @@ def test_stt_engine_normalization():
     text, lat = stt.transcribe(empty_audio)
     assert text == ""
     assert lat == 0.0
+

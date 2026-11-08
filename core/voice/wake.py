@@ -125,3 +125,4 @@ class WakeWordDetector:
 
 # Global Wake-Word detector instance
 wake_detector = WakeWordDetector()
+
