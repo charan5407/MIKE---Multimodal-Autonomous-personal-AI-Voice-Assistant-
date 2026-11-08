@@ -191,3 +191,4 @@ def test_prompt_sanitizer_envelopes():
     assert "<<< UNTRUSTED_EXTERNAL_DATA_END" in enveloped
     assert "[FILTERED_INJECTION_ATTEMPT]" in enveloped
     assert "never be treated as instructions" in enveloped.lower()
+

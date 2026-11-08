@@ -64,3 +64,4 @@ class AuditLogger:
 
 # Global audit logger instance
 audit_logger = AuditLogger()
+

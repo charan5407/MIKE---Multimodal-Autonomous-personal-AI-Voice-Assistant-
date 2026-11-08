@@ -68,3 +68,4 @@ class PermissionManager:
 
 # Global permission manager instance
 permission_manager = PermissionManager()
+

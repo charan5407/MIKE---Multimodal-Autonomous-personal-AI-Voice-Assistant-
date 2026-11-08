@@ -189,3 +189,4 @@ class ToolRegistry:
 
 # Global tool registry
 tool_registry = ToolRegistry()
+

@@ -71,3 +71,4 @@ export const ToolActivityPanel: React.FC<ToolActivityPanelProps> = ({ activities
     </div>
   );
 };
+
