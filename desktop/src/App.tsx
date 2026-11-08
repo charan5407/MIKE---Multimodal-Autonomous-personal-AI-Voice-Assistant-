@@ -3,12 +3,13 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { HUDCanvas } from './components/hud/HUDCanvas';
 import { VoiceSearchBar } from './components/VoiceSearchBar';
 import { TranscriptPanel } from './components/TranscriptPanel';
+import { ToolActivityPanel } from './components/ToolActivityPanel';
 import { SettingsModal } from './components/SettingsModal';
 import { AppSettings } from './types';
 import { Settings as SettingsIcon, Minus, X, ShieldCheck } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const { isConnected, voiceState, rms, transcript, response, sendAction } = useWebSocket();
+  const { isConnected, voiceState, rms, transcript, response, toolActivities, sendAction } = useWebSocket();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [lowPowerMode, setLowPowerMode] = useState(false);
 
@@ -137,7 +138,10 @@ export const App: React.FC = () => {
         </div>
 
         {/* Bottom Interactive Area */}
-        <div className="w-full space-y-4 mt-auto">
+        <div className="w-full space-y-3 mt-auto">
+          {/* Tool Activity Stream Panel */}
+          <ToolActivityPanel activities={toolActivities} />
+
           {/* Live Transcript / Response Stream */}
           <TranscriptPanel transcript={transcript} response={response} voiceState={voiceState} />
 

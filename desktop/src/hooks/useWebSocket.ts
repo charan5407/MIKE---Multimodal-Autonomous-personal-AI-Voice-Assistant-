@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { VoiceState } from '../types';
+import { ToolActivityItem } from '../components/ToolActivityPanel';
 
 interface UseWebSocketReturn {
   isConnected: boolean;
@@ -7,6 +8,7 @@ interface UseWebSocketReturn {
   rms: number;
   transcript: string;
   response: string;
+  toolActivities: ToolActivityItem[];
   sendAction: (action: string, payload?: Record<string, unknown>) => void;
 }
 
@@ -16,6 +18,7 @@ export function useWebSocket(url = 'ws://127.0.0.1:8765/ws'): UseWebSocketReturn
   const [rms, setRms] = useState(0);
   const [transcript, setTranscript] = useState('');
   const [response, setResponse] = useState('');
+  const [toolActivities, setToolActivities] = useState<ToolActivityItem[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number>();
 
@@ -49,6 +52,11 @@ export function useWebSocket(url = 'ws://127.0.0.1:8765/ws'): UseWebSocketReturn
               break;
             case 'response_chunk':
               if (data.chunk) setResponse((prev) => prev + data.chunk);
+              break;
+            case 'tool_activity':
+              if (data.tool) {
+                setToolActivities((prev) => [...prev.slice(-9), data]);
+              }
               break;
             default:
               break;
@@ -89,6 +97,6 @@ export function useWebSocket(url = 'ws://127.0.0.1:8765/ws'): UseWebSocketReturn
     }
   }, []);
 
-  return { isConnected, voiceState, rms, transcript, response, sendAction };
+  return { isConnected, voiceState, rms, transcript, response, toolActivities, sendAction };
 }
 
