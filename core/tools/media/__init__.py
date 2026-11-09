@@ -18,3 +18,4 @@ def register_media_tools():
     ]
     for tool in tools:
         tool_registry.register(tool)
+

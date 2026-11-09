@@ -15,3 +15,4 @@ def register_whatsapp_tools():
     ]
     for tool in tools:
         tool_registry.register(tool)
+

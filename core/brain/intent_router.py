@@ -230,6 +230,42 @@ class IntentRouter:
                 parameters={"app_name": target_app},
             )
 
+        # 10. Mouse Scrolling: "scroll down", "scroll up"
+        scroll_match = re.match(r"^(?:mike\s+)?scroll\s+(up|down|left|right)$", norm)
+        if scroll_match:
+            return IntentMatch(
+                intent_name="scroll_mouse",
+                tool_name="scroll_mouse",
+                parameters={"direction": scroll_match.group(1), "clicks": 3},
+            )
+
+        # 11. Vision Click: "click <target>", "double click <target>", "right click <target>"
+        dclick_match = re.match(r"^(?:mike[\s,]+)?double\s+click(?:\s+on)?\s+(.+)$", raw, re.IGNORECASE)
+        if dclick_match:
+            return IntentMatch(
+                intent_name="vision_click",
+                tool_name="vision_click",
+                parameters={"target": dclick_match.group(1).strip(), "click_type": "double"},
+            )
+
+        rclick_match = re.match(r"^(?:mike[\s,]+)?right\s+click(?:\s+on)?\s+(.+)$", raw, re.IGNORECASE)
+        if rclick_match:
+            return IntentMatch(
+                intent_name="vision_click",
+                tool_name="vision_click",
+                parameters={"target": rclick_match.group(1).strip(), "click_type": "right"},
+            )
+
+        click_match = re.match(r"^(?:mike[\s,]+)?click(?:\s+on)?\s+(.+)$", raw, re.IGNORECASE)
+        if click_match:
+            tgt = click_match.group(1).strip()
+            if tgt.lower() not in ["the laptop", "laptop", "pc"]:
+                return IntentMatch(
+                    intent_name="vision_click",
+                    tool_name="vision_click",
+                    parameters={"target": tgt, "click_type": "left"},
+                )
+
         return None
 
 
