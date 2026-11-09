@@ -300,6 +300,22 @@ class IntentRouter:
                 parameters={"topic": quiz_match.group(1).strip()},
             )
 
+        # 14. Project Builder: "Mike, create a <project>", "create a snake game in Python"
+        proj_match = re.match(
+            r"^(?:mike[\s,]+)?(?:create\s+(?:a\s+)?project|create\s+a|build\s+(?:a\s+)?project|build\s+a)\s+(.+)$",
+            raw,
+            re.IGNORECASE,
+        )
+        if proj_match:
+            desc = proj_match.group(1).strip()
+            # Exclude non-project phrases
+            if not desc.lower().startswith("whatsapp") and not desc.lower().startswith("file") and not desc.lower().startswith("shortcut"):
+                return IntentMatch(
+                    intent_name="create_project",
+                    tool_name="create_project",
+                    parameters={"project_description": desc, "open_vscode": True},
+                )
+
         return None
 
 
