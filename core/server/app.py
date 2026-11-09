@@ -75,13 +75,6 @@ async def lifespan(app: FastAPI):
     register_profile_tools()
     register_memory_tools()
 
-    # Wire tool execution broadcasts to WebSocket
-    tool_registry.set_activity_callback(
-        lambda event, data: asyncio.create_task(
-            ws_manager.broadcast("tool_activity", {"event": event, "data": data})
-        )
-    )
-
     # Startup: wire up coordinator callbacks to WebSocket
     voice_coordinator.on_state_change = lambda s: asyncio.create_task(
         ws_manager.broadcast("state_change", {"state": s.value})

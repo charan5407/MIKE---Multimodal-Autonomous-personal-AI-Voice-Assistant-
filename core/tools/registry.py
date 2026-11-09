@@ -39,6 +39,10 @@ class ToolRegistry:
     def on_activity(self, callback: Callable[[Dict[str, Any]], None]):
         self._activity_callbacks.append(callback)
 
+    def set_activity_callback(self, callback: Callable[[Dict[str, Any]], None]):
+        """Alias for on_activity to support external callback registration."""
+        self._activity_callbacks.append(callback)
+
     async def _broadcast_activity(self, tool_name: str, tier: str, status: str, detail: str = ""):
         payload = {
             "tool": tool_name,
