@@ -316,6 +316,28 @@ class IntentRouter:
                     parameters={"project_description": desc, "open_vscode": True},
                 )
 
+        # 15. Stock Analysis: "analyze stock RELIANCE", "analyze Apple stock", "stock shortlist"
+        stock_match = re.match(
+            r"^(?:mike[\s,]+)?(?:analyze\s+stock|analyze|stock\s+analysis\s+for|stock\s+price\s+of|stock\s+report\s+for)\s+([a-zA-Z0-9_\-\.\s]+?)(?:\s+stock)?$",
+            raw,
+            re.IGNORECASE,
+        )
+        if stock_match:
+            stk = stock_match.group(1).strip()
+            if stk.lower() not in ["the laptop", "laptop", "pc", "music", "code", "file"]:
+                return IntentMatch(
+                    intent_name="analyze_stock",
+                    tool_name="analyze_stock",
+                    parameters={"ticker": stk},
+                )
+
+        if any(phrase in norm for phrase in ["stock shortlist", "candidate stocks", "stock recommendations"]):
+            return IntentMatch(
+                intent_name="stock_shortlist",
+                tool_name="stock_shortlist",
+                parameters={"market": "NSE"},
+            )
+
         return None
 
 
