@@ -158,7 +158,7 @@ Charan's private personal details (full name, date of birth, age, college/degree
 ### Installation
 ```powershell
 # 1. Clone repository
-git clone https://github.com/charanchowdary5407/Mike.git
+git clone https://github.com/charan5407/Mike.git
 cd Mike
 
 # 2. Set up Python virtual environment
