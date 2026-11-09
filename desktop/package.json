@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && node electron/run.cjs\"",
     "electron:build": "vite build && electron-builder"
   },
   "dependencies": {

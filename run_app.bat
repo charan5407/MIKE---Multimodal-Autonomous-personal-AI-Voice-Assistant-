@@ -1,5 +1,6 @@
 @echo off
-title MIKE Desktop Assistant - Phase 3
+set ELECTRON_RUN_AS_NODE=
+title MIKE Desktop Assistant - Autonomous Agentic HUD
 echo ==============================================================================
 echo Launching MIKE Desktop Assistant (Core Server + Electron HUD Shell)...
 echo ==============================================================================
