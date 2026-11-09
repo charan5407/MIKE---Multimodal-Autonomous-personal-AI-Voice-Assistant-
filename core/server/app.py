@@ -51,9 +51,11 @@ async def rms_broadcast_loop():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Register all automation tools (system, media, whatsapp, mouse/vision, search, tutor, coding, finance)
+    # Register all automation tools (system, media, whatsapp, mouse/vision, search, tutor, coding, finance, profile, memory)
     from core.brain.coding import register_coding_tools
     from core.brain.tutor import register_tutor_tools
+    from core.memory import register_memory_tools
+    from core.security import register_profile_tools
     from core.tools.finance import register_finance_tools
     from core.tools.media import register_media_tools
     from core.tools.mouse import register_mouse_tools
@@ -70,6 +72,8 @@ async def lifespan(app: FastAPI):
     register_tutor_tools()
     register_coding_tools()
     register_finance_tools()
+    register_profile_tools()
+    register_memory_tools()
 
     # Wire tool execution broadcasts to WebSocket
     tool_registry.set_activity_callback(

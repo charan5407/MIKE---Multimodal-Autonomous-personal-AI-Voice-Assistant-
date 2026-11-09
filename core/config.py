@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     system_prompt_path: Path = BASE_DIR / "prompts" / "mike.md"
     profile_path: Path = BASE_DIR / "data" / "profile.local.json"
     profile_example_path: Path = BASE_DIR / "data" / "profile.example.json"
+    secret_key_path: Path = BASE_DIR / "data" / "secret_key.key"
+    memory_db_path: Path = BASE_DIR / "data" / "memory.db"
     contacts_path: Path = BASE_DIR / "data" / "contacts.local.json"
     contacts_example_path: Path = BASE_DIR / "data" / "contacts.example.json"
 

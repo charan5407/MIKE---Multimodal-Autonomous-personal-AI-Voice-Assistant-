@@ -50,11 +50,14 @@ class AuditLogger:
             logger.error(f"Failed to write to audit log: {e}")
 
     def _sanitize_dict(self, d: Dict[str, Any]) -> Dict[str, Any]:
-        """Redacts sensitive values like passwords, tokens, or profile data."""
+        """Redacts sensitive values like passwords, tokens, or private profile data."""
         sanitized = {}
         for k, v in d.items():
-            if any(s in k.lower() for s in ["password", "secret", "token", "key"]):
+            k_lower = k.lower()
+            if any(s in k_lower for s in ["password", "secret", "token", "key"]):
                 sanitized[k] = "[REDACTED_SECRET]"
+            elif any(p in k_lower for p in ["profile", "dob", "birth", "credentials"]):
+                sanitized[k] = "[REDACTED_PRIVATE_DATA]"
             elif isinstance(v, dict):
                 sanitized[k] = self._sanitize_dict(v)
             else:

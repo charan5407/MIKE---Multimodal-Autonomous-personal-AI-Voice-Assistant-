@@ -16,6 +16,8 @@ data/*.local.json
 data/profile.local.json
 data/contacts.local.json
 data/secret_key.key
+data/*.db
+data/memory.db
 whatsapp_session/
 .playwright/
 

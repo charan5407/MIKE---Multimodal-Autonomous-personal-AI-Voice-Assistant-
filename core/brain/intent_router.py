@@ -338,6 +338,81 @@ class IntentRouter:
                 parameters={"market": "NSE"},
             )
 
+        # 16. Private Profile Fast-Paths (Feature 8):
+        # Questions strictly answered for Charan's ear with zero UI exposure
+        profile_patterns = [
+            r"^(?:mike[\s,]+)?(?:who am i|what is my name|my name)$",
+            r"^(?:mike[\s,]+)?(?:how old am i|what is my age|my age)$",
+            r"^(?:mike[\s,]+)?(?:what is my (?:dob|date of birth)|when was i born|what is my birthday)$",
+            r"^(?:mike[\s,]+)?(?:what (?:is|are) my (?:education|degree|college|university)|where do i study)$",
+            r"^(?:mike[\s,]+)?(?:what are my (?:current )?projects|tell me (?:about )?my projects)$",
+            r"^(?:mike[\s,]+)?(?:what are my interests|what do i like)$",
+            r"^(?:mike[\s,]+)?(?:tell me my profile summary|profile summary)$",
+        ]
+        for pat in profile_patterns:
+            if re.match(pat, norm):
+                return IntentMatch(
+                    intent_name="query_profile",
+                    tool_name="query_profile",
+                    parameters={"query": raw},
+                )
+
+        # 17. Memory Commands (Features 7 & 14):
+        # "remember that...", "forget that", "recall..."
+        rem_match = re.match(
+            r"^(?:mike[\s,]+)?(?:remember that|remember this|keep in mind that)\s+(.+)$",
+            raw,
+            re.IGNORECASE,
+        )
+        if rem_match:
+            fact = re.sub(r"[\?\.\!,]+$", "", rem_match.group(1)).strip()
+            return IntentMatch(
+                intent_name="remember_fact",
+                tool_name="remember_fact",
+                parameters={"fact": fact, "category": "preference"},
+            )
+
+        if norm in [
+            "forget that",
+            "mike forget that",
+            "forget what i said",
+            "mike forget what i said",
+            "forget what i just said",
+            "delete that memory",
+            "forget that fact",
+        ]:
+            return IntentMatch(
+                intent_name="forget_last",
+                tool_name="forget_last",
+                parameters={},
+            )
+
+        fgt_match = re.match(
+            r"^(?:mike[\s,]+)?(?:forget about|delete memory about)\s+(.+)$",
+            raw,
+            re.IGNORECASE,
+        )
+        if fgt_match:
+            topic = re.sub(r"[\?\.\!,]+$", "", fgt_match.group(1)).strip()
+            return IntentMatch(
+                intent_name="forget_last",
+                tool_name="forget_last",
+                parameters={"topic": topic},
+            )
+
+        recall_match = re.match(
+            r"^(?:mike[\s,]+)?(?:what do you remember about|what did i say about|recall|do you remember)\s+(.+)$",
+            raw,
+            re.IGNORECASE,
+        )
+        if recall_match:
+            topic = re.sub(r"[\?\.\!,]+$", "", recall_match.group(1)).strip()
+            return IntentMatch(
+                intent_name="recall_memory",
+                tool_name="recall_memory",
+                parameters={"query": topic},
+            )
+
         return None
 
 

@@ -1,87 +1,234 @@
 # MIKE: Multimodal Autonomous Agentic Desktop Voice Assistant
 
-MIKE is an autonomous, agentic desktop assistant designed for Windows with an audio-reactive 3D HUD centerpiece, voice pipeline (wake word, VAD, local streaming STT, and calm female TTS), multi-provider LLM brain (Ollama offline fallback $\rightarrow$ Gemini Free $\rightarrow$ Groq Free), desktop app shell with system tray icon, tool execution framework with permission tiers, and system automation capabilities.
+MIKE is a multimodal, autonomous, agentic desktop assistant designed for Windows 11. Built specifically for **Charan** (B.E./B.Tech AIML student), MIKE pairs real-time, hands-free voice interaction with desktop automation, computer vision, code synthesis, financial stock analysis, university-level tutoring, and cryptographically encrypted long-term memory.
 
 ---
 
-## Architecture Overview
+## Key Highlights
+
+- **100% Free & Open-Source Stack**: Operates entirely with free local models or free-tier APIs (Ollama, Gemini Free Tier, Groq Free Tier, DuckDuckGo, yfinance, edge-tts). Zero paid subscriptions required.
+- **Natural Voice Interaction**: Real-time openWakeWord detection ("Mike" / "Hey Mike"), Silero VAD endpointing, GPU/CPU `faster-whisper` STT, and soft, calm female neural speech (`en-US-AriaNeural`, pitch `-2Hz`, rate `-4%`) with sub-50ms barge-in interruption.
+- **Audio-Reactive 3D Centerpiece**: High-performance Three.js / React Three Fiber HUD featuring a metallic **"C"** emblem suspended inside 3 concentric rotating rings, particle nebula, and 6 visual states (`IDLE`, `LISTENING`, `THINKING`, `SPEAKING`, `STOPPED`, `ERROR`).
+- **Autonomous Agentic Tools**: 14 distinct system capabilities spanning vision-grounded mouse control, Spotify/YouTube playback, WhatsApp messaging, financial backtesting, university exam prep, code generation, and memory retention.
+- **Strict Privacy & Security Boundaries**: Three permission tiers (Tier A Safe, Tier B Reversible Logged, Tier C Strict Spoken Confirmation), immutable JSONL audit trails, prompt-injection defense envelopes, emergency stop (`Ctrl+Alt+Shift+S`, "Mike, stop", mouse corner failsafe), Fernet-encrypted profile store, and a strict **Zero UI Exposure Rule**.
+
+---
+
+## 14 Core Capabilities
+
+| # | Capability | Description | Permission Tier |
+|---|---|---|---|
+| **1** | **YouTube Control** | Searches and opens YouTube videos via `yt-dlp` and controls playback (pause, next, mute, fullscreen). | Tier A (Safe) |
+| **2** | **Music & Media** | Spotify Web API integration and global Windows hardware media keys (`VK_MEDIA_PLAY_PAUSE`, track skipping, volume). | Tier A (Safe) |
+| **3** | **WhatsApp Messaging** | Voice-controlled contact resolution and messaging. Strictly reads recipient & message aloud and asks for confirmation before dispatching. | **Tier C (Sensitive Confirmation)** |
+| **4** | **System Automation** | Native control over system master volume, display brightness, screen lock, application launching, clipboard, and recycling bin file management. | Tier A & B |
+| **5** | **Voice Search Bar** | Real-time web search powered by DuckDuckGo with source citations, synthesized into concise voice answers. | Tier A (Safe) |
+| **6** | **Stock Analyst & Forecaster** | Comprehensive technical analysis (SMA, EMA, RSI, MACD, Bollinger Bands, Support/Resistance pivots), RSS news sentiment scoring, 20-day backtesting with MAE/RMSE, and 7-day probabilistic forecasting with mandatory educational disclaimers for NSE/BSE and US stocks. | Tier A (Safe) |
+| **7** | **Short-Term Context Memory** | Sliding-window conversation buffer with automated compression and rolling context summarization. | Safe / Internal |
+| **8** | **Encrypted Private Profile** | Cryptographically encrypted personal store (`cryptography.fernet.Fernet`) with local key management. **Zero UI Exposure Rule**: details never render on screen. Answers strictly via audio when asked aloud. | Tier A (Audio Only) |
+| **9** | **Autonomous Coding Agent** | Multi-file architectural planner, automatic file tree creation under `~/MikeProjects/`, `git init`, dependency installation, automated test-and-fix loop (max $N=3$ iterations), and automatic VS Code workspace launch. | Tier B & C |
+| **10** | **3D "C" HUD Visual Engine** | Concentric metallic rings reacting to mic RMS audio and assistant state at 60 FPS in a frameless cyber glassmorphism window. | UI Display |
+| **11** | **Multi-Provider LLM Brain** | Intelligent router with automatic fallback chain: **Ollama Local** (`llama3.1:8b` offline) $\rightarrow$ **Google Gemini Free Tier** (`gemini-2.0-flash` vision & tools) $\rightarrow$ **Groq Free Tier** (`llama-3.3-70b-versatile` fast tool calling). | Autonomous Router |
+| **12** | **Mouse Control & Vision Grounding** | Offline Windows UI Automation (PyWinAuto UIA) with sub-50ms latency, falling back to Gemini 2.0 Flash Vision for web element localization in an **Observe-Act-Verify loop** with PyAutoGUI failsafe. | Tier B (Reversible) |
+| **13** | **AIML Tutor & Code Debugger** | University exam preparation (10/15-mark answer standard), interactive quiz generation, and traceback debugger extracting file, line, error type, root cause, and verified drop-in code fixes. | Tier A (Safe) |
+| **14** | **Long-Term Memory & Deletion** | SQLite memory engine with TF-IDF semantic vector similarity and keyword search. Instant memory erasure via voice command (*"Mike, forget that"* / *"forget what I just said"*). | Tier A & B (Reversible) |
+
+---
+
+## System Architecture
 
 ```text
 Mike/
-├── .env.example              # Template for all environment variables & API keys
-├── .env                      # Local environment file (gitignored)
-├── .gitignore                # Strict privacy rules (excludes .env, local data, logs, models)
-├── README.md                 # Setup and architecture documentation
+├── .env.example              # Template for environment variables and API keys
+├── .env                      # Local secret keys and environment (gitignored)
+├── .gitignore                # Strict privacy rules (excludes secrets, local data, models, logs)
+├── README.md                 # Complete system documentation
 ├── requirements.txt          # Python 3.11+ dependencies
 ├── pytest.ini                # Pytest configuration
 ├── run_app.bat               # One-click launcher for Core Server + Desktop App Shell
-├── run_cli.bat               # One-click CLI chat launcher
-├── run_voice_test.bat        # One-click voice pipeline verification
-├── run_server.py             # FastAPI + WebSocket server runner
-├── cli_chat.py
-├── test_voice_cli.py
+├── run_server.py             # FastAPI + WebSocket server entry point
+├── test_voice_cli.py         # Standalone voice pipeline verification script
 ├── prompts/
-│   └── mike.md               # MIKE persona, tone, rules, and safety boundaries
+│   └── mike.md               # Master persona, tone, rules, and privacy envelopes
 ├── data/
-│   ├── contacts.example.json # Dummy template for WhatsApp contacts
-│   └── profile.example.json  # Dummy template for personal profile
+│   ├── contacts.example.json # Safe template for WhatsApp contacts
+│   ├── profile.example.json  # Safe template for personal profile
+│   ├── secret_key.key        # Generated Fernet symmetric key (gitignored)
+│   ├── profile.local.json    # Encrypted private profile storage (gitignored)
+│   └── memory.db             # SQLite persistent long-term memory (gitignored)
 ├── core/
-│   ├── config.py             # Pydantic Settings loading from .env
-│   ├── logger.py             # Structured logger with secret/PII redaction
-│   ├── brain/                # Multi-provider LLM routing (Phase 1)
-│   ├── voice/                # Real-time Voice Pipeline (Phase 2)
-│   ├── server/               # FastAPI + WebSocket Core IPC Server (Phase 3)
-│   ├── security/             # Security, Permission Tiers & Audit (Phase 5)
-│   │   ├── permissions.py    # Tier A (Safe), Tier B (Logged), Tier C (Strict Confirm)
-│   │   ├── audit.py          # Structured JSONL audit logger (logs/audit.jsonl)
-│   │   └── sanitizer.py      # Prompt injection defenses & untrusted data envelopes
-│   └── tools/                # Tool Execution Engine (Phase 5)
-│       ├── base.py           # BaseTool interface & Pydantic JSON Schema generator
-│       ├── cancellation.py   # CancellationToken & input release failsafe (pyautogui)
-│       └── registry.py       # Tool discovery, permission enforcement, WebSocket broadcast
-├── desktop/                  # Desktop Application Shell
-│   ├── src/
-│   │   ├── App.tsx           # HUD layout & controls
-│   │   ├── components/
-│   │   │   ├── hud/          # 3D HUD (Three.js / React Three Fiber)
-│   │   │   ├── ToolActivityPanel.tsx # Live tool activity stream (Phase 5)
-│   │   │   ├── VoiceSearchBar.tsx
-│   │   │   ├── TranscriptPanel.tsx
-│   │   │   └── SettingsModal.tsx
-└── tests/
-    ├── test_llm_router.py    # LLM Router & prompt tests
-    ├── test_voice_pipeline.py # Voice pipeline unit tests
-    ├── test_server.py        # FastAPI & WebSocket server tests
-    └── test_tools.py         # Permission, audit, cancellation, & sanitizer tests
+│   ├── config.py             # Pydantic Settings loaded from .env
+│   ├── logger.py             # Structured logger with secret and PII redaction
+│   ├── brain/                # Multi-Provider Router, Coding Agent, Tutor, Intent Router
+│   │   ├── base.py           # Provider interface, LLMRequest, LLMResponse
+│   │   ├── router.py         # Automatic fallback engine (Ollama -> Gemini -> Groq)
+│   │   ├── intent_router.py  # Fast-path regex matching (<10ms) & confirmation tracker
+│   │   ├── coding/           # Autonomous project builder & VS Code integration
+│   │   └── tutor/            # University exam mode, quiz generator, traceback debugger
+│   ├── voice/                # Real-time Voice Pipeline
+│   │   ├── audio_stream.py   # SoundDevice ring buffer with RMS energy metering
+│   │   ├── wake_word.py      # openWakeWord engine ("Mike" / "Hey Mike")
+│   │   ├── vad.py            # Silero VAD / adaptive SNR voice activity endpointing
+│   │   ├── stt.py            # faster-whisper local streaming STT (GPU / CPU)
+│   │   ├── tts.py            # edge-tts soft calm female voice (en-US-AriaNeural)
+│   │   └── coordinator.py    # Voice loop orchestration & sub-50ms barge-in
+│   ├── server/               # Core IPC Server
+│   │   ├── app.py            # FastAPI REST endpoints & tool initialization
+│   │   └── ws.py             # WebSocket broadcasting (state, RMS, transcript, tools)
+│   ├── security/             # Security & Privacy Framework
+│   │   ├── permissions.py    # Tier A, Tier B, Tier C security gatekeeper
+│   │   ├── audit.py          # Structured JSONL audit logging (logs/audit.jsonl)
+│   │   ├── profile.py        # Fernet encryption & private profile manager
+│   │   ├── profile_tool.py   # Audio-only private profile querying tool
+│   │   └── sanitizer.py      # Prompt-injection defense data envelopes
+│   ├── memory/               # Short & Long-Term Memory Engine
+│   │   ├── short_term.py     # Rolling conversation buffer with auto-summarization
+│   │   ├── long_term.py      # SQLite store with TF-IDF semantic vector recall
+│   │   └── tools.py          # RememberTool, RecallMemoryTool, ForgetLastTool
+│   └── tools/                # Extensible Tool Engine
+│       ├── base.py           # BaseTool class with Pydantic schema validation
+│       ├── cancellation.py   # Cooperative CancellationToken & corner failsafe
+│       ├── registry.py       # Tool discovery and activity broadcasting
+│       ├── system/           # Volume, brightness, lock, apps, clipboard, files
+│       ├── media/            # YouTube and Spotify playback tools
+│       ├── whatsapp/         # WhatsApp voice messenger with Tier C confirmation
+│       ├── mouse/            # PyWinAuto UIA + Gemini Flash Vision mouse control
+│       ├── search/           # DuckDuckGo web search tool
+│       └── finance/          # Technical indicators, sentiment, and backtesting
+├── desktop/                  # Electron + React HUD Application Shell
+│   ├── package.json          # Vite + Electron Builder build scripts
+│   ├── electron/             # Main process, system tray, global shortcuts
+│   │   ├── main.cjs          # Window management, tray icon, shortcuts
+│   │   └── preload.cjs       # Secure IPC bridge
+│   └── src/                  # React 18 + Three.js Frontend
+│       ├── App.tsx           # Cyber glassmorphism layout
+│       ├── components/
+│       │   ├── hud/          # 3D "C" centerpiece, concentric rings, particle nebula
+│       │   ├── SettingsModal.tsx # Zero UI exposure settings modal
+│       │   ├── ToolActivityPanel.tsx # Real-time tool execution stream
+│       │   ├── VoiceSearchBar.tsx # Search bar input
+│       │   └── TranscriptPanel.tsx # Dialogue transcript
+│       └── hooks/
+│           └── useWebSocket.ts # Live WebSocket connection to Core Server
+└── tests/                    # Comprehensive Automated Test Suite (77 Tests)
+    ├── test_coding_agent.py
+    ├── test_llm_router.py
+    ├── test_media_whatsapp.py
+    ├── test_memory_profile.py
+    ├── test_mouse_vision.py
+    ├── test_search_tutor.py
+    ├── test_server.py
+    ├── test_stock_analyst.py
+    ├── test_system_tools.py
+    ├── test_tools.py
+    └── test_voice_pipeline.py
 ```
 
 ---
 
-## Permission Tiers & Security Framework
+## Security & Privacy Framework
 
-MIKE enforces 3 distinct permission tiers for every system action:
-- **Tier A (Safe)**: Runs automatically without confirmation (read-only queries, system status, web search, volume level, time).
-- **Tier B (Reversible)**: Runs automatically and records an immutable audit trail with rollback metadata (creating files, launching apps, clipboard operations).
-- **Tier C (Sensitive)**: **STRICTLY REQUIRES explicit spoken or on-screen confirmation from Charan** (sending WhatsApp messages, deleting files, locking/shutting down workstation, executing code). If denied or timed out, the action is rejected immediately.
+### 1. Permission Tiers
+- **Tier A (Safe)**: Executes immediately without confirmation (read-only queries, system status, web search, volume level, time).
+- **Tier B (Reversible)**: Executes automatically and records an immutable audit log entry with rollback metadata (creating files, launching applications, clipboard writes, remembering facts).
+- **Tier C (Sensitive)**: **Strictly requires explicit spoken or on-screen confirmation from Charan** (sending WhatsApp messages, deleting files, power state changes). If denied or timed out after 30 seconds, the action is rejected immediately.
 
-### Prompt-Injection Defense
-All content ingested from external sources (web pages, WhatsApp messages, local files, screen text) is enclosed inside an immutable data envelope by [`PromptSanitizer`](file:///c:/Users/ASUS/OneDrive/Desktop/Mike/core/security/sanitizer.py). Content is strictly treated as data and never as instructions.
+### 2. Zero UI Exposure Rule
+Charan's private personal details (full name, date of birth, age, college/degree, personal project paths) are stored strictly inside a `cryptography.fernet.Fernet` encrypted file (`data/profile.local.json`) protected by `data/secret_key.key`.
+- The desktop UI has **no component or input field** rendering these values.
+- WebSocket state broadcasts **never leak** raw profile values.
+- MIKE reveals profile facts **only when Charan explicitly asks aloud** (e.g. *"Mike, what is my age?"*).
 
-### Emergency Stop & Failsafe
-- Saying `"Mike, stop"`, pressing **`Ctrl+Alt+Shift+S`**, or slamming the mouse to any screen corner triggers immediate cancellation:
-  - Active tools are halted via [`CancellationToken`](file:///c:/Users/ASUS/OneDrive/Desktop/Mike/core/tools/cancellation.py).
-  - All held mouse buttons and modifier keys are released.
-  - Reversible actions are rolled back.
-  - Voice coordinator immediately speaks *"Stopped."*
+### 3. Emergency Stop & Corner Failsafe
+- Spoken command: *"Mike, stop"*
+- Global shortcut: **`Ctrl + Alt + Shift + S`**
+- Mouse corner failsafe: Slamming the mouse pointer to any of the 4 screen corners activates `pyautogui.FAILSAFE = True` abort.
+- Action: Halts running tools via [`CancellationToken`](file:///c:/Users/ASUS/OneDrive/Desktop/Mike/core/tools/cancellation.py), releases held mouse buttons and modifier keys, rolls back reversible actions, and speaks *"Stopped."*
 
 ---
 
-## Project Status
+## Quickstart & Setup
 
-### Completed Phases:
-- [x] **Phase 1**: Core Scaffold, Config, Logging, LLM Router (Ollama $\rightarrow$ Gemini $\rightarrow$ Groq)
-- [x] **Phase 2**: Voice Pipeline (openWakeWord, Silero VAD, faster-whisper, calm TTS, barge-in)
-- [x] **Phase 3**: Desktop App Shell (Electron + React 18 + TypeScript + Vite, System Tray, Settings)
-- [x] **Phase 4**: 3D "C" HUD with Audio-Reactive Concentric Rings & 60 FPS WebGL Engine
-- [x] **Phase 5**: Tool Framework, Permission Tiers (A/B/C), Audit Log, Cancellation & Sanitizer
-- [x] **25/25 automated unit tests passing 100%**
+### Prerequisites
+1. **Windows 10 or 11 (64-bit)**
+2. **Python 3.11+**
+3. **Node.js 18+ & npm**
+4. Optional: **Ollama** (for local offline LLM)
+
+### Installation
+```powershell
+# 1. Clone repository
+git clone https://github.com/charanchowdary5407/Mike.git
+cd Mike
+
+# 2. Set up Python virtual environment
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+# 3. Set up Desktop frontend dependencies
+npm --prefix desktop install
+
+# 4. Configure environment
+cp .env.example .env
+# Edit .env with your free Gemini/Groq API keys and local preferences
+```
+
+### Running the Application
+
+**Option A: One-Click App Launcher**
+```powershell
+.\run_app.bat
+```
+
+**Option B: Manual Terminal Execution**
+```powershell
+# Terminal 1: Core FastAPI + WebSocket Server
+.\.venv\Scripts\python.exe run_server.py
+
+# Terminal 2: Electron Desktop HUD
+npm --prefix desktop run dev
+# Or run with Electron app shell
+npm --prefix desktop run electron:dev
+```
+
+### Building the Windows Installer (.exe)
+```powershell
+npm --prefix desktop run electron:build
+```
+The compiled setup executable (`MIKE Setup 0.1.0.exe`) will be generated inside `desktop/release/`.
+
+---
+
+## Testing & Verification
+
+The system includes a 100% passing automated test suite covering all 12 implementation phases:
+
+```powershell
+# Run the complete test suite
+.\.venv\Scripts\pytest.exe -v
+```
+
+```text
+============================= 77 passed in 15.97s =============================
+```
+
+### Test Coverage Breakdown
+- `tests/test_voice_pipeline.py`: openWakeWord, Silero VAD, faster-whisper STT, edge-tts synthesis, barge-in halting.
+- `tests/test_server.py`: FastAPI health checks, REST actions, WebSocket real-time audio RMS broadcasting.
+- `tests/test_llm_router.py`: Ollama offline fallback $\rightarrow$ Gemini Free $\rightarrow$ Groq Free failover.
+- `tests/test_tools.py`: Permission tiers A/B/C, confirmation timeout, prompt injection sanitizer, cancellation tokens.
+- `tests/test_system_tools.py`: Volume, brightness, workstation lock, application launch, clipboard, file manager.
+- `tests/test_media_whatsapp.py`: YouTube search/controls, Spotify media keys, WhatsApp contact resolution & voice confirmation.
+- `tests/test_mouse_vision.py`: PyWinAuto UIA control locator, Gemini 2.0 Flash Vision element grounding, Observe-Act-Verify loop.
+- `tests/test_search_tutor.py`: DuckDuckGo search citations, university exam mode, quiz generator, traceback code debugger.
+- `tests/test_coding_agent.py`: Autonomous project planner, file tree synthesizer, git init, automated test-and-fix loop.
+- `tests/test_stock_analyst.py`: NSE/BSE & US ticker normalization, technical indicators, news sentiment, backtesting forecaster.
+- `tests/test_memory_profile.py`: Fernet encryption/decryption, Zero UI exposure, short-term summarization, SQLite long-term memory, TF-IDF recall, "forget that" deletion.
+
+---
+
+## License & Attribution
+
+Developed with pride by **Charan** (B.E./B.Tech AIML student).
+Licensed under the **MIT License**. Strictly for educational and personal autonomous assistance.
