@@ -266,6 +266,40 @@ class IntentRouter:
                     parameters={"target": tgt, "click_type": "left"},
                 )
 
+        # 12. Web Search: "search the web for <query>", "search for <query>"
+        search_match = re.match(
+            r"^(?:mike[\s,]+)?(?:search\s+(?:the\s+)?web\s+for|web\s+search(?:\s+for)?|search\s+for|look\s+up)\s+(.+)$",
+            raw,
+            re.IGNORECASE,
+        )
+        if search_match:
+            sq = search_match.group(1).strip()
+            if not sq.lower().endswith("on youtube") and not sq.lower().endswith("on spotify"):
+                return IntentMatch(
+                    intent_name="web_search",
+                    tool_name="web_search",
+                    parameters={"query": sq},
+                )
+
+        # 13. AIML Tutor: Exam Mode & Quiz Mode
+        exam_match1 = re.match(r"^(?:mike[\s,]+)?explain\s+(?:like\s+i\s+m\s+in\s+an\s+exam|in\s+exam\s+mode)\s+(.+)$", norm)
+        exam_match2 = re.match(r"^(?:mike[\s,]+)?explain\s+(.+)\s+in\s+exam\s+mode$", norm)
+        if exam_match1 or exam_match2:
+            target_concept = (exam_match1 or exam_match2).group(1).strip()
+            return IntentMatch(
+                intent_name="explain_concept_exam",
+                tool_name="explain_concept",
+                parameters={"concept": target_concept, "mode": "exam"},
+            )
+
+        quiz_match = re.match(r"^(?:mike[\s,]+)?quiz\s+me(?:\s+on)?\s+(.+)$", norm)
+        if quiz_match:
+            return IntentMatch(
+                intent_name="generate_quiz",
+                tool_name="generate_quiz",
+                parameters={"topic": quiz_match.group(1).strip()},
+            )
+
         return None
 
 
