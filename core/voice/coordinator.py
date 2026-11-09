@@ -63,6 +63,7 @@ class VoiceCoordinator:
         self._conversation_history: List[ChatMessage] = []
         self._loop_task: Optional[asyncio.Task] = None
         self._barge_in_counter = 0
+        self._speaking_start_time = 0.0
 
     @property
     def state(self) -> AssistantState:
@@ -77,6 +78,9 @@ class VoiceCoordinator:
         if self._state != new_state:
             prev = self._state
             self._state = new_state
+            if new_state == AssistantState.SPEAKING:
+                self._speaking_start_time = time.time()
+                self._barge_in_counter = 0
             logger.info(f"State transition: [{prev.value}] -> [{new_state.value}]")
             if self.on_state_change:
                 try:
@@ -198,11 +202,17 @@ class VoiceCoordinator:
                         self.set_state(AssistantState.IDLE)
 
                 elif self._state == AssistantState.SPEAKING:
-                    # Monitor for Barge-in (requires sustained speech >=0.85 so speaker echo doesn't trigger)
+                    # Ignore mic during initial TTS playback to avoid speaker loopback echo
+                    if time.time() - self._speaking_start_time < 1.5:
+                        self._barge_in_counter = 0
+                        await asyncio.sleep(0.01)
+                        continue
+
+                    # Monitor for intentional Barge-in (requires sustained speech >=0.90)
                     vad_res = self.vad.process_chunk(chunk)
-                    if vad_res["prob"] >= 0.85:
+                    if vad_res["prob"] >= 0.90:
                         self._barge_in_counter += 1
-                        if self._barge_in_counter >= 5:  # ~160ms of continuous speech
+                        if self._barge_in_counter >= 8:  # ~250ms of continuous speech
                             logger.info("User speech detected while speaking! Triggering barge-in...")
                             self._barge_in_counter = 0
                             self.tts.stop_playback()
