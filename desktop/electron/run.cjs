@@ -23,3 +23,4 @@ child.on('error', (err) => {
   console.error('Failed to launch Electron process:', err);
   process.exit(1);
 });
+
