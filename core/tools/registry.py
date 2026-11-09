@@ -193,6 +193,23 @@ class ToolRegistry:
             await self._broadcast_activity(tool.name, tool.tier.value, "failed", detail=err_msg)
             return ToolResult(success=False, error=err_msg)
 
+    async def execute(
+        self,
+        name: str,
+        cancel_token: Optional[CancellationToken] = None,
+        cancellation_token: Optional[CancellationToken] = None,
+        bypass_confirmation: bool = False,
+        **kwargs,
+    ) -> ToolResult:
+        """Alias for execute_tool supporting keyword parameters and flexible cancellation naming."""
+        token = cancel_token or cancellation_token or root_cancellation_token
+        return await self.execute_tool(
+            name=name,
+            args=kwargs,
+            cancellation_token=token,
+            bypass_confirmation=bypass_confirmation,
+        )
+
 
 # Global tool registry
 tool_registry = ToolRegistry()

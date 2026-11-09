@@ -413,6 +413,20 @@ class IntentRouter:
                 parameters={"query": topic},
             )
 
+        # 18. Greetings & Identity Queries: "hello", "hi", "hey mike", "who are you", "what can you do"
+        greeting_patterns = [
+            r"^(?:mike[\s,]+)?(?:hello|hi|hey|hey mike|good morning|good afternoon|good evening)$",
+            r"^(?:mike[\s,]+)?(?:who are you|what can you do|what are your features|help)$",
+            r"^hello mike$",
+        ]
+        for pat in greeting_patterns:
+            if re.match(pat, norm):
+                return IntentMatch(
+                    intent_name="greeting",
+                    tool_name="greeting",
+                    parameters={"query": raw},
+                )
+
         return None
 
 

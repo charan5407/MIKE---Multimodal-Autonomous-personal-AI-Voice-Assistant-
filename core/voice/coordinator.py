@@ -62,6 +62,7 @@ class VoiceCoordinator:
         self._cancel_token = threading.Event()
         self._conversation_history: List[ChatMessage] = []
         self._loop_task: Optional[asyncio.Task] = None
+        self._barge_in_counter = 0
 
     @property
     def state(self) -> AssistantState:
@@ -133,10 +134,40 @@ class VoiceCoordinator:
 
                 if self._state == AssistantState.IDLE:
                     # Monitor for wake word
-                    if self.wake.process_chunk(chunk):
+                    wake_detected = self.wake.process_chunk(chunk)
+                    vad_prob = self.vad.compute_speech_prob(chunk) if hasattr(self.vad, "compute_speech_prob") else 0.0
+
+                    if wake_detected:
                         logger.info("Wake word detected! Switching to LISTENING.")
                         self.set_state(AssistantState.LISTENING)
                         self.vad.reset()
+                    elif not self.wake.is_enabled and vad_prob >= 0.7:
+                        # Direct speech mode when wake word is toggled off
+                        self.set_state(AssistantState.LISTENING)
+                        self.vad.reset()
+                    elif self.wake.is_enabled and vad_prob >= 0.75:
+                        # Buffer speech phrase to check for spoken "Mike" keyword
+                        speech_frames = [chunk]
+                        self.vad.reset()
+                        while self._is_running and self._state == AssistantState.IDLE:
+                            c = self.audio.read_chunk(timeout=0.05)
+                            if c is None:
+                                await asyncio.sleep(0.005)
+                                continue
+                            speech_frames.append(c)
+                            vr = self.vad.process_chunk(c)
+                            if vr["event"] == "SPEECH_END":
+                                break
+                            if len(speech_frames) > 160:  # ~5 seconds max
+                                break
+
+                        if len(speech_frames) > 8:
+                            full_audio = np.concatenate(speech_frames)
+                            text, latency = self.stt.transcribe(full_audio)
+                            clean_t = text.lower().strip()
+                            if any(w in clean_t for w in ["mike", "hey mike", "jarvis", "mycroft"]):
+                                logger.info(f"Natural speech wake detected ('{text}'). Processing command.")
+                                await self._handle_user_speech(audio=None, direct_text=text)
 
                 elif self._state == AssistantState.LISTENING:
                     # User is actively speaking; record until VAD detects SPEECH_END
@@ -167,12 +198,17 @@ class VoiceCoordinator:
                         self.set_state(AssistantState.IDLE)
 
                 elif self._state == AssistantState.SPEAKING:
-                    # Monitor for Barge-in (user speech interruption)
+                    # Monitor for Barge-in (requires sustained speech >=0.85 so speaker echo doesn't trigger)
                     vad_res = self.vad.process_chunk(chunk)
-                    if vad_res["prob"] >= 0.7:
-                        logger.info("User speech detected while speaking! Triggering barge-in...")
-                        self.tts.stop_playback()
-                        self.set_state(AssistantState.LISTENING)
+                    if vad_res["prob"] >= 0.85:
+                        self._barge_in_counter += 1
+                        if self._barge_in_counter >= 5:  # ~160ms of continuous speech
+                            logger.info("User speech detected while speaking! Triggering barge-in...")
+                            self._barge_in_counter = 0
+                            self.tts.stop_playback()
+                            self.set_state(AssistantState.LISTENING)
+                    else:
+                        self._barge_in_counter = 0
 
                 await asyncio.sleep(0.001)
 
@@ -216,7 +252,13 @@ class VoiceCoordinator:
             self._conversation_history.append(ChatMessage(role="user", content=text))
             self.set_state(AssistantState.SPEAKING)
 
-            if intent.intent_name == "cancel_action":
+            if intent.intent_name == "greeting":
+                response_text = (
+                    "Hello Charan! I am MIKE, your autonomous multimodal desktop assistant. "
+                    "I am listening and ready. You can ask me to analyze stocks, create coding projects, "
+                    "control Spotify and YouTube, ask AIML questions, or query your private profile."
+                )
+            elif intent.intent_name == "cancel_action":
                 response_text = "Action cancelled."
             elif intent.requires_confirmation:
                 response_text = intent.confirmation_prompt or "Please confirm this action."
@@ -262,7 +304,24 @@ class VoiceCoordinator:
 
         except Exception as e:
             logger.error(f"Error generating voice response: {e}")
-            await self.tts.speak("I encountered an issue processing that. Could you repeat?")
+            fallback_msg = (
+                "I hear you, Charan! However, no AI brain provider is configured yet. "
+                "To enable open-ended chatting, please add your free GEMINI_API_KEY or GROQ_API_KEY "
+                "to your .env file, or start Ollama locally.\n\n"
+                "In the meantime, all local tools work! Try asking:\n"
+                "• 'Mike, who am I?' or 'Mike, what is my age?'\n"
+                "• 'Mike, analyze stock RELIANCE'\n"
+                "• 'Mike, remember that I like low latency audio'\n"
+                "• 'Mike, what do you remember about audio?'\n"
+                "• 'Mike, set volume to 50%'"
+            )
+            if self.on_response_chunk:
+                self.on_response_chunk(fallback_msg)
+            self._conversation_history.append(ChatMessage(role="assistant", content=fallback_msg))
+            try:
+                await self.tts.speak("Please add your free Gemini API key to the dot env file to enable full chat. Local tools and profile questions are ready.")
+            except Exception:
+                pass
         finally:
             if not self._cancel_token.is_set():
                 self.set_state(AssistantState.IDLE)

@@ -48,7 +48,10 @@ export function useWebSocket(url = 'ws://127.0.0.1:8765/ws'): UseWebSocketReturn
               if (data.state) setVoiceState(data.state);
               break;
             case 'transcript':
-              if (data.text) setTranscript(data.text);
+              if (data.text) {
+                setTranscript(data.text);
+                setResponse('');
+              }
               break;
             case 'response_chunk':
               if (data.chunk) setResponse((prev) => prev + data.chunk);
