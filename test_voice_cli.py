@@ -37,9 +37,7 @@ async def test_tts_and_barge_in():
     loop = asyncio.get_running_loop()
 
     # Play audio in background
-    play_task = asyncio.create_task(
-        loop.run_in_executor(None, tts_engine.play_audio_bytes, audio_bytes)
-    )
+    play_task = loop.run_in_executor(None, tts_engine.play_audio_bytes, audio_bytes)
 
     # Monitor for keypress to test barge-in
     def wait_for_interrupt():
@@ -51,7 +49,7 @@ async def test_tts_and_barge_in():
         except Exception:
             pass
 
-    key_task = asyncio.create_task(loop.run_in_executor(None, wait_for_interrupt))
+    key_task = loop.run_in_executor(None, wait_for_interrupt)
 
     await play_task
     key_task.cancel()
