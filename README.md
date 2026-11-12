@@ -176,7 +176,10 @@ cp .env.example .env
 
 ### Running the Application
 
-**Option A: One-Click App Launcher**
+**Option A: Direct Desktop Shortcut (1-Click App)**
+Double-click the **MIKE** application icon directly on your Windows Desktop (`MIKE.lnk`). It automatically launches the background Python Core Server and the Electron HUD shell seamlessly with no messy terminal windows.
+
+**Option B: One-Click Batch Launcher**
 ```powershell
 .\run_app.bat
 ```
