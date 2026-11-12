@@ -19,16 +19,25 @@ class LLMRouter:
 
     def _initialize_providers(self):
         """Instantiate providers based on settings."""
+        # Read from environment directly as fallback if pydantic settings didn't load from .env yet
+        import os
+        from dotenv import dotenv_values
+        env_vals = dotenv_values(str(settings.base_dir / ".env"))
+
+        groq_key = settings.groq_api_key or os.getenv("GROQ_API_KEY") or env_vals.get("GROQ_API_KEY")
+        gemini_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY") or env_vals.get("GEMINI_API_KEY")
+        ollama_url = settings.ollama_base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+
         self._providers["ollama"] = OllamaProvider(
-            base_url=settings.ollama_base_url,
+            base_url=ollama_url,
             model=settings.ollama_model,
         )
         self._providers["gemini"] = GeminiProvider(
-            api_key=settings.gemini_api_key,
+            api_key=gemini_key,
             model=settings.gemini_model,
         )
         self._providers["groq"] = GroqProvider(
-            api_key=settings.groq_api_key,
+            api_key=groq_key,
             model=settings.groq_model,
         )
 

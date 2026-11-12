@@ -8,10 +8,18 @@
     color: #f8fafc;
     font-family: 'JetBrains Mono', monospace, sans-serif;
     user-select: none;
+    -webkit-app-region: no-drag;
+  }
+
+  .drag-header {
     -webkit-app-region: drag;
   }
 
-  button, input, select {
+  .no-drag {
+    -webkit-app-region: no-drag;
+  }
+
+  button, input, select, textarea, [role="button"], a {
     -webkit-app-region: no-drag;
   }
 }

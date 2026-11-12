@@ -6,6 +6,7 @@ Allows opening, closing, and listing applications on the system safely.
 import os
 import subprocess
 import sys
+import webbrowser
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
@@ -33,6 +34,7 @@ APP_MAP = {
     "visual studio code": "code",
     "spotify": "spotify",
     "whatsapp": "whatsapp:",
+    "youtube": "https://www.youtube.com",
     "terminal": "wt.exe",
     "cmd": "cmd.exe",
     "powershell": "powershell.exe",
@@ -60,7 +62,9 @@ class OpenAppTool(BaseTool):
         logger.info(f"Opening application: {norm_name} -> {target}")
 
         try:
-            if sys.platform == "win32":
+            if target.startswith("http://") or target.startswith("https://"):
+                webbrowser.open(target)
+            elif sys.platform == "win32":
                 # Check if it's a URI scheme (e.g. whatsapp:)
                 if target.endswith(":"):
                     os.startfile(target)

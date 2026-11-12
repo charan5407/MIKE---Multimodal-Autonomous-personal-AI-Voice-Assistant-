@@ -1,6 +1,9 @@
+delete process.env.ELECTRON_RUN_AS_NODE;
+
 const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeImage } = require('electron');
 const path = require('path');
 const http = require('http');
+const fs = require('fs');
 
 let mainWindow = null;
 let tray = null;
@@ -17,6 +20,14 @@ function createCIcon() {
     </svg>
   `;
   return nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`);
+}
+
+function getAppIcon() {
+  const icoPath = path.join(__dirname, '../../assets/mike.ico');
+  if (fs.existsSync(icoPath)) {
+    return icoPath;
+  }
+  return createCIcon();
 }
 
 function sendCoreAction(actionPath) {
@@ -40,7 +51,7 @@ function createWindow() {
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
-    icon: createCIcon(),
+    icon: getAppIcon(),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -48,10 +59,14 @@ function createWindow() {
     },
   });
 
-  const devUrl = 'http://localhost:5173';
-  mainWindow.loadURL(devUrl).catch(() => {
+  const isDev = process.env.NODE_ENV === 'development';
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173').catch(() => {
+      mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    });
+  } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
-  });
+  }
 
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
@@ -150,11 +165,36 @@ app.whenReady().then(() => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  try {
+    const { exec } = require('child_process');
+    exec('powershell -NoProfile -WindowStyle Hidden -Command "Get-NetTCPConnection -LocalPort 8765 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"');
+  } catch (e) {}
 });
 
 // IPC Listeners
 ipcMain.handle('window-minimize', () => {
-  if (mainWindow) mainWindow.hide();
+  if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.handle('window-maximize', () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+    return mainWindow.isMaximized();
+  }
+  return false;
+});
+
+ipcMain.handle('window-fullscreen', () => {
+  if (mainWindow) {
+    const isFull = mainWindow.isFullScreen();
+    mainWindow.setFullScreen(!isFull);
+    return !isFull;
+  }
+  return false;
 });
 
 ipcMain.handle('window-close', () => {

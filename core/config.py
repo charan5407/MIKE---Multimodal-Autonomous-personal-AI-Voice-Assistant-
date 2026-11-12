@@ -40,8 +40,8 @@ class Settings(BaseSettings):
     contacts_example_path: Path = BASE_DIR / "data" / "contacts.example.json"
 
     # LLM Router & Providers
-    llm_primary_provider: str = Field(default="ollama", alias="LLM_PRIMARY_PROVIDER")
-    llm_fallback_providers_raw: str = Field(default="gemini,groq", alias="LLM_FALLBACK_PROVIDERS")
+    llm_primary_provider: str = Field(default="groq", alias="LLM_PRIMARY_PROVIDER")
+    llm_fallback_providers_raw: str = Field(default="gemini,ollama", alias="LLM_FALLBACK_PROVIDERS")
     
     # 1. Ollama (Offline Local LLM)
     ollama_base_url: str = Field(default="http://localhost:11434", alias="OLLAMA_BASE_URL")

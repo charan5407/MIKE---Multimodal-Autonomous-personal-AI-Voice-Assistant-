@@ -18,8 +18,13 @@ data/contacts.local.json
 data/secret_key.key
 data/*.db
 data/memory.db
+data/chat_sessions.json
+data/tts_cache/
+data/generated_images/*
+!data/generated_images/.gitkeep
 whatsapp_session/
 .playwright/
+scratch/
 
 # Logs and Audit Trails
 logs/
@@ -42,9 +47,9 @@ desktop/node_modules/
 desktop/dist/
 desktop/src-tauri/target/
 
-# OS specific files
+# OS and Shortcut files
+*.lnk
 Thumbs.db
 [Dd]esktop.ini
 $RECYCLE.BIN/
 .DS_Store
-

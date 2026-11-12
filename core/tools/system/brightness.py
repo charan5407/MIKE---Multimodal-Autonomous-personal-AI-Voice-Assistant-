@@ -11,7 +11,7 @@ from core.tools.cancellation import CancellationToken
 
 try:
     import screen_brightness_control as sbc
-except ImportError:
+except Exception:
     sbc = None
 
 

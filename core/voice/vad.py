@@ -15,9 +15,9 @@ class VoiceActivityDetector:
     def __init__(
         self,
         sample_rate: int = 16000,
-        threshold: float = 0.5,
-        min_speech_duration_ms: int = 250,
-        silence_timeout_ms: int = 800,
+        threshold: float = 0.35,
+        min_speech_duration_ms: int = 120,
+        silence_timeout_ms: int = 450,
     ):
         self.sample_rate = sample_rate
         self.threshold = threshold
@@ -27,7 +27,7 @@ class VoiceActivityDetector:
         self._is_speaking: bool = False
         self._speech_start_time: Optional[float] = None
         self._last_speech_time: Optional[float] = None
-        self._energy_floor: float = 0.01
+        self._energy_floor: float = 0.0015
         self._onnx_session = None
         self._init_silero_onnx()
 
@@ -56,8 +56,9 @@ class VoiceActivityDetector:
         rms = float(np.sqrt(np.mean(np.square(data))))
 
         # Dynamic noise floor estimation: adapt when quiet
-        if rms < self._energy_floor * 1.5:
-            self._energy_floor = 0.95 * self._energy_floor + 0.05 * rms
+        if rms < self._energy_floor * 2.0:
+            self._energy_floor = 0.96 * self._energy_floor + 0.04 * rms
+        self._energy_floor = max(0.0003, min(0.02, self._energy_floor))
 
         # Signal-to-noise ratio estimate
         snr = rms / (self._energy_floor + 1e-6)
@@ -66,12 +67,12 @@ class VoiceActivityDetector:
         zero_crossings = np.sum(np.abs(np.diff(np.sign(data)))) / (2.0 * len(data))
 
         # Heuristic speech probability
-        if snr > 3.0 and zero_crossings < 0.35:
-            prob = min(1.0, 0.4 + (snr / 10.0))
-        elif snr > 2.0:
-            prob = 0.4
+        if snr > 2.2 and zero_crossings < 0.45:
+            prob = min(1.0, 0.4 + (snr / 8.0))
+        elif snr > 1.6:
+            prob = 0.38
         else:
-            prob = 0.1
+            prob = 0.05
 
         return float(prob)
 

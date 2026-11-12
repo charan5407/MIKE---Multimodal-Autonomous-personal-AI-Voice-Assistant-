@@ -1,5 +1,14 @@
 export type VoiceState = 'IDLE' | 'LISTENING' | 'THINKING' | 'SPEAKING' | 'STOPPED' | 'ERROR';
 
+export interface ChatMessageItem {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp?: string;
+  media_url?: string;
+  media_type?: 'image' | 'video' | 'audio' | 'code';
+}
+
 export interface AudioDevice {
   index: number;
   name: string;
@@ -23,6 +32,8 @@ declare global {
     mikeAPI?: {
       minimizeToTray: () => Promise<void>;
       closeWindow: () => Promise<void>;
+      toggleMaximize?: () => Promise<boolean>;
+      toggleFullScreen?: () => Promise<boolean>;
       toggleAlwaysOnTop: (flag: boolean) => Promise<boolean>;
       setStartOnBoot: (flag: boolean) => Promise<boolean>;
     };

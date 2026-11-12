@@ -46,6 +46,7 @@ class TTSEngine:
         self._stop_event = threading.Event()
         self._is_speaking = False
         self._lock = threading.Lock()
+        self._async_lock: Optional[asyncio.Lock] = None
 
     @property
     def is_speaking(self) -> bool:
@@ -140,14 +141,24 @@ class TTSEngine:
             for frame in container.decode(stream):
                 if self._stop_event.is_set():
                     break
-                # Convert to float32 mono or stereo
                 arr = frame.to_ndarray()
                 if arr.ndim == 2:
                     # Shape is usually (channels, samples), transpose to (samples, channels)
                     arr = arr.T
                     if arr.shape[1] > 1:
                         arr = np.mean(arr, axis=1)  # downmix to mono
-                pcm_chunks.append(arr.astype(np.float32) / 32768.0)
+                    else:
+                        arr = arr[:, 0]
+                elif arr.ndim > 2:
+                    arr = arr.flatten()
+
+                # Normalize integer formats to float32 in [-1.0, 1.0]; leave float formats untouched
+                if np.issubdtype(arr.dtype, np.integer):
+                    arr_f = arr.astype(np.float32) / 32768.0
+                else:
+                    arr_f = arr.astype(np.float32)
+
+                pcm_chunks.append(arr_f.flatten())
 
             if not pcm_chunks or self._stop_event.is_set():
                 self._is_speaking = False
@@ -168,7 +179,8 @@ class TTSEngine:
                 if self._stop_event.is_set():
                     break
                 block = full_pcm[i : i + chunk_size]
-                out_stream.write(block)
+                block_c = np.ascontiguousarray(np.clip(block, -1.0, 1.0), dtype=np.float32)
+                out_stream.write(block_c)
 
             out_stream.stop()
             out_stream.close()
@@ -184,20 +196,31 @@ class TTSEngine:
         return not self._stop_event.is_set()
 
     async def speak(self, text: str, on_start=None, on_finish=None) -> bool:
-        """Asynchronously synthesizes and plays speech with barge-in support."""
-        audio_bytes = await self.synthesize_to_bytes(text)
-        if not audio_bytes:
+        """Asynchronously synthesizes and plays speech with barge-in support and anti-echo locking."""
+        cleaned = self.clean_text_for_speech(text)
+        if not cleaned:
             return False
 
-        # Run blocking audio playback in thread
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            None,
-            self.play_audio_bytes,
-            audio_bytes,
-            on_start,
-            on_finish,
-        )
+        if self._async_lock is None:
+            self._async_lock = asyncio.Lock()
+
+        # Stop any existing playback before acquiring lock to guarantee zero overlap/echo
+        self.stop_playback()
+
+        async with self._async_lock:
+            audio_bytes = await self.synthesize_to_bytes(cleaned)
+            if not audio_bytes:
+                return False
+
+            # Run blocking audio playback in thread
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(
+                None,
+                self.play_audio_bytes,
+                audio_bytes,
+                on_start,
+                on_finish,
+            )
 
 
 # Global TTS instance

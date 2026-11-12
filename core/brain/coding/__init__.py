@@ -7,6 +7,7 @@ from core.brain.coding.builder import ProjectBuilder, project_builder
 from core.brain.coding.tools import (
     CreateProjectTool,
     EditFileTool,
+    ExecuteCodeTool,
     ExplainCodeTool,
     InitGitRepoTool,
 )
@@ -18,6 +19,7 @@ def register_coding_tools():
     tools = [
         CreateProjectTool(),
         EditFileTool(),
+        ExecuteCodeTool(),
         ExplainCodeTool(),
         InitGitRepoTool(),
     ]

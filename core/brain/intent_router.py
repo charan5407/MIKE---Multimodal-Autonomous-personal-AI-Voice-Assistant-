@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
 from core.logger import logger
-from core.tools.whatsapp.sender import resolve_contact_phone
 
 
 @dataclass
@@ -65,10 +64,93 @@ class IntentRouter:
                     requires_confirmation=False,
                 )
 
-        # 1. YouTube Play: "Mike, play <query> on YouTube"
+        # 0.5 Pure Wake-Word Activation: "wake up mike", "mike", "hey mike", "wake up"
+        wake_patterns = [
+            r"^(?:hey\s+)?mike$",
+            r"^wake\s+up(?:\s+mike)?$",
+            r"^(?:are\s+you\s+there\s+mike|mike\s+are\s+you\s+there)$",
+            r"^mic$",
+        ]
+        for pat in wake_patterns:
+            if re.match(pat, norm):
+                return IntentMatch(
+                    intent_name="wake_up",
+                    tool_name="wake_up",
+                    parameters={"query": raw},
+                )
+
+        # Strip conversational filler prefixes so core intents match effortlessly
+        cleaned = norm
+        prefixes = [
+            r"^(?:hey\s+)?mike[\s,]+",
+            r"^what\s+happened[\s,]+",
+            r"^can\s+(?:you|u)\s+(?:please\s+)?",
+            r"^could\s+(?:you|u)\s+(?:please\s+)?",
+            r"^will\s+(?:you|u)\s+(?:please\s+)?",
+            r"^would\s+(?:you|u)\s+(?:please\s+)?",
+            r"^please\s+",
+            r"^just\s+",
+            r"^i\s+want\s+you\s+to\s+",
+            r"^help\s+me\s+",
+            r"^go\s+ahead\s+and\s+",
+            r"^tell\s+me\s+",
+            r"^do\s+one\s+thing\s+",
+        ]
+        for p in prefixes:
+            cleaned = re.sub(p, "", cleaned, flags=re.IGNORECASE).strip()
+
+        # 0.8 VS Code & Program Execution (Direct execution + VS Code Launch)
+        # e.g. "what happened open visual studio code and show the program", "open vscode and run the code", "run in vscode"
+        is_vscode = any(v in norm for v in ["visual studio code", "vscode", "vs code"])
+        text_without_vscode = re.sub(r"\b(?:visual\s+studio\s+code|vscode|vs\s+code)\b", " ", norm)
+        is_exec = any(e in text_without_vscode for e in ["show", "run", "execute", "display", "output", "program", "script", "code"])
+
+        if is_vscode and is_exec:
+            topic = "linked list"
+            for candidate in ["linked list", "bubble sort", "binary search", "calculator", "sort", "tree", "graph", "stack", "queue"]:
+                if candidate in norm:
+                    topic = candidate
+                    break
+            return IntentMatch(
+                intent_name="execute_code",
+                tool_name="execute_code",
+                parameters={"prompt": topic, "open_vscode": True},
+            )
+
+        # 0.9 Direct Code Writing & Running
+        # e.g. "write a python script for linked list", "run bubble sort in python", "execute linked list"
+        code_exec_match = (
+            re.match(r"^(?:write|create|code|generate|build)\s+(?:a\s+)?(?:python\s+)?(?:script|program|code)\s+(?:for|to|of)?\s*(.+)$", cleaned, re.IGNORECASE)
+            or re.match(r"^(?:run|execute)\s+(?:the\s+)?(?:python\s+)?(?:script|program|code)?\s*(?:for|to|of)?\s*(.+)$", cleaned, re.IGNORECASE)
+        )
+        if code_exec_match:
+            concept = code_exec_match.group(1).strip()
+            if not any(w in concept for w in ["youtube", "spotify", "music", "app", "window", "chrome", "notepad", "calculator", "browser"]):
+                return IntentMatch(
+                    intent_name="execute_code",
+                    tool_name="execute_code",
+                    parameters={"prompt": concept, "open_vscode": True},
+                )
+
+        # Dedicated VS Code launch without execution
+        if cleaned in ["open vscode", "open vs code", "open visual studio code", "launch vscode", "launch visual studio code", "vscode", "visual studio code"]:
+            return IntentMatch(
+                intent_name="open_app",
+                tool_name="open_app",
+                parameters={"app_name": "vscode"},
+            )
+
+        # 1. YouTube Direct Open & Play: "Mike, open YouTube" / "Mike, play <query> on YouTube"
+        if cleaned in ["open youtube", "launch youtube", "go to youtube", "youtube"]:
+            return IntentMatch(
+                intent_name="open_app",
+                tool_name="open_app",
+                parameters={"app_name": "youtube"},
+            )
+
         yt_play = (
-            re.match(r"^(?:mike\s+)?(?:play|search)\s+(.+?)\s+on\s+youtube$", norm)
-            or re.match(r"^(?:mike\s+)?youtube\s+(?:play|search)\s+(.+)$", norm)
+            re.match(r"^(?:play|search)\s+(.+?)\s+on\s+youtube$", cleaned)
+            or re.match(r"^youtube\s+(?:play|search)\s+(.+)$", cleaned)
         )
         if yt_play:
             return IntentMatch(
@@ -103,7 +185,11 @@ class IntentRouter:
         if wa_match:
             recipient = wa_match.group(1).strip()
             msg_body = wa_match.group(2).strip()
-            resolved_name, phone = resolve_contact_phone(recipient)
+            try:
+                from core.tools.whatsapp.sender import resolve_contact_phone
+                resolved_name, phone = resolve_contact_phone(recipient)
+            except Exception:
+                resolved_name, phone = recipient, None
             display_target = resolved_name if resolved_name else recipient
             phone_str = f" ({phone})" if phone else ""
             prompt = f"You want to send a WhatsApp message to {display_target}{phone_str} saying: '{msg_body}'. Shall I send this? Please confirm."
@@ -164,6 +250,129 @@ class IntentRouter:
                 parameters={"action": action},
             )
 
+        # 5.4 Image Capability & Info Checks
+        # e.g. "can you generate a image", "can you create images", "what do you require to generate an image"
+        if cleaned in [
+            "generate a image", "generate an image", "generate image", "generate images",
+            "create a image", "create an image", "create image", "create images",
+            "make a image", "make an image", "make image", "can u generate a image",
+            "can you generate a image", "can you generate an image", "can you create images",
+            "can you make images", "draw a picture", "draw an image", "image generation",
+        ]:
+            return IntentMatch(
+                intent_name="can_generate_image",
+                tool_name="can_generate_image",
+                parameters={},
+            )
+
+        if any(q in cleaned for q in [
+            "what do you require to generate an image",
+            "what upgrades i need to make",
+            "what upgrades do you require",
+            "how do you generate image",
+            "how do you create image",
+        ]):
+            return IntentMatch(
+                intent_name="image_capabilities_info",
+                tool_name="image_capabilities_info",
+                parameters={"query": raw},
+            )
+
+        # 5.5 Multimodal Generation & Perception Fast-Paths
+        # Show / Display Latest Generated Image
+        norm_no_space = re.sub(r"\s+", "", cleaned)
+        if any(w in cleaned for w in [
+            "display image", "display it", "show image", "show the image",
+            "open image", "open the image", "where is the image",
+            "dont see any image", "dont see the image", "didnt see the image",
+            "don t see any image", "don t see the image", "didn t see the image",
+            "don t see", "dont see", "can you please display", "please display it",
+            "display the image", "show the bike image", "display the bike image",
+            "show the latest image", "display the latest image", "show the picture"
+        ]) or "displayit" in norm_no_space or "showimage" in norm_no_space or "opentheimage" in norm_no_space:
+            return IntentMatch(
+                intent_name="show_latest_image",
+                tool_name="show_latest_image",
+                parameters={},
+            )
+
+        # Text-to-Image Generation
+        img_gen_match = (
+            re.match(r"^(?:create|generate|make|draw|paint|produce|show\s+me)\s+(?:an?\s+)?(?:illustration|image|photo|picture|artwork|drawing)\s+(?:of|for)?\s+(.+)$", cleaned)
+            or re.match(r"^(?:image|photo|picture|illustration|artwork)\s+(?:of|for)\s+(.+)$", cleaned)
+            or re.match(r"^generate\s+image\s+(.+)$", cleaned)
+            or re.match(r"^draw\s+(?:an?\s+)?(.+)$", cleaned)
+            or re.match(r"^(?:create|generate|make)\s+(?:an?\s+)?(.+?\s+(?:image|illustration|picture))$", cleaned)
+            or re.match(r"^(?:illustration|image|photo|picture)\s+(?:of\s+)?(.+)$", cleaned)
+        )
+        if img_gen_match:
+            img_prompt = img_gen_match.group(1).strip()
+            # Clean trailing words like "image" or "illustration" if redundant
+            img_prompt = re.sub(r"\s+(?:image|illustration|picture)$", "", img_prompt, flags=re.IGNORECASE).strip()
+            if img_prompt:
+                return IntentMatch(
+                    intent_name="generate_image",
+                    tool_name="generate_image",
+                    parameters={"prompt": img_prompt},
+                )
+
+        # Vision QA & Screen Perception
+        vision_screen_match = (
+            re.match(r"^(?:what|describe|explain)\s+(?:is\s+)?(?:on\s+my\s+screen|my\s+screen|the\s+screen)$", cleaned)
+            or re.match(r"^what\s+warning\s+is\s+visible(?:\s+on\s+the\s+machine\s+label)?", cleaned)
+            or "describe my screen" in cleaned
+            or "take a screenshot and analyze" in cleaned
+        )
+        if vision_screen_match:
+            return IntentMatch(
+                intent_name="analyze_image",
+                tool_name="analyze_image",
+                parameters={"query": raw, "image_path": "screen"},
+            )
+
+        # Text-to-Video Generation
+        vid_gen_match = re.match(r"^(?:create|generate|make)\s+(?:a\s+)?(?:video|clip|animation)\s+(?:of|for)\s+(.+)$", cleaned)
+        if vid_gen_match:
+            vid_prompt = vid_gen_match.group(1).strip()
+            return IntentMatch(
+                intent_name="generate_video",
+                tool_name="generate_video",
+                parameters={"prompt": vid_prompt},
+            )
+
+        # Text-to-3D Generation
+        three_d_match = re.match(r"^(?:create|generate|make)\s+(?:a\s+)?3d\s+(?:model|object|mesh)\s+(?:of|for)\s+(.+)$", cleaned)
+        if three_d_match:
+            three_d_prompt = three_d_match.group(1).strip()
+            return IntentMatch(
+                intent_name="generate_3d",
+                tool_name="generate_3d",
+                parameters={"prompt": three_d_prompt},
+            )
+
+        # Multimodal Meeting / Slides Summarizer
+        if any(w in cleaned for w in ["summarize meeting", "summarize the meeting", "summarize slides", "meeting summary"]):
+            return IntentMatch(
+                intent_name="summarize_meeting",
+                tool_name="summarize_meeting",
+                parameters={"content_or_path": raw},
+            )
+
+        # Laptop Management & System Stats
+        if cleaned in ["system stats", "laptop stats", "battery status", "laptop health", "system health", "cpu usage", "ram usage"]:
+            return IntentMatch(
+                intent_name="manage_laptop",
+                tool_name="manage_laptop",
+                parameters={"action": "system_stats"},
+            )
+
+        if cleaned in ["list apps", "list running apps", "what apps are open", "running applications"]:
+            return IntentMatch(
+                intent_name="manage_laptop",
+                tool_name="manage_laptop",
+                parameters={"action": "list_apps"},
+            )
+
         # 6. Laptop Lock: "Mike, lock the laptop"
         if norm in [
             "mike lock the laptop",
@@ -182,8 +391,12 @@ class IntentRouter:
                 parameters={},
             )
 
-        # 7. Volume Control: "set volume to 50", "mute audio"
-        vol_match = re.match(r"^(?:mike\s+)?(?:set|change)\s+volume(?:\s+to)?\s+(\d+)%?$", norm) or re.match(r"^(?:mike\s+)?volume\s+(\d+)%?$", norm)
+        # 7. Volume Control: "set volume to 50", "mute audio", "volume up", "volume down"
+        vol_match = (
+            re.match(r"^(?:set|change)\s+volume(?:\s+to)?\s+(\d+)%?$", cleaned)
+            or re.match(r"^volume\s+(\d+)%?$", cleaned)
+            or re.match(r"^(?:mike\s+)?(?:set|change)\s+volume(?:\s+to)?\s+(\d+)%?$", norm)
+        )
         if vol_match:
             level = int(vol_match.group(1))
             return IntentMatch(
@@ -192,7 +405,12 @@ class IntentRouter:
                 parameters={"level": level},
             )
 
-        if norm in ["mike mute", "mute", "unmute", "mike unmute", "toggle mute", "mute audio", "unmute audio"]:
+        if any(w in cleaned for w in ["volume up", "increase volume", "turn it up", "louder", "make it louder"]):
+            return IntentMatch(intent_name="set_volume", tool_name="set_volume", parameters={"level": 75})
+        if any(w in cleaned for w in ["volume down", "decrease volume", "turn it down", "quieter", "lower volume"]):
+            return IntentMatch(intent_name="set_volume", tool_name="set_volume", parameters={"level": 30})
+
+        if cleaned in ["mute", "unmute", "toggle mute", "mute audio", "unmute audio"] or norm in ["mike mute", "mike unmute"]:
             return IntentMatch(
                 intent_name="toggle_mute",
                 tool_name="toggle_mute",
@@ -200,7 +418,11 @@ class IntentRouter:
             )
 
         # 8. Brightness Control: "set brightness to 80"
-        bright_match = re.match(r"^(?:mike\s+)?(?:set|change)\s+brightness(?:\s+to)?\s+(\d+)%?$", norm) or re.match(r"^(?:mike\s+)?brightness\s+(\d+)%?$", norm)
+        bright_match = (
+            re.match(r"^(?:set|change)\s+brightness(?:\s+to)?\s+(\d+)%?$", cleaned)
+            or re.match(r"^brightness\s+(\d+)%?$", cleaned)
+            or re.match(r"^(?:mike\s+)?(?:set|change)\s+brightness(?:\s+to)?\s+(\d+)%?$", norm)
+        )
         if bright_match:
             level = int(bright_match.group(1))
             return IntentMatch(
@@ -209,26 +431,39 @@ class IntentRouter:
                 parameters={"level": level},
             )
 
-        # 9. App Management: "open notepad", "close chrome"
-        open_app = re.match(r"^(?:mike\s+)?open\s+([a-zA-Z0-9_\-\.\s]+)$", norm)
+        # 9. App Management: "open notepad", "close chrome", "open spotify", "open youtube"
+        KNOWN_APP_KEYWORDS = {
+            "notepad", "calculator", "calc", "chrome", "google chrome", "edge", "ms edge",
+            "vscode", "vs code", "visual studio code", "spotify", "whatsapp", "youtube",
+            "terminal", "cmd", "powershell", "explorer", "file explorer", "task manager",
+            "browser", "settings", "camera", "word", "excel", "powerpoint", "paint", "discord"
+        }
+        STOP_WORDS = {"your", "the", "a", "an", "my", "this", "that", "it", "something", "anything"}
+
+        open_app = (
+            re.match(r"^open\s+([a-zA-Z0-9_\-\.\s]+)$", cleaned)
+            or re.match(r"^(?:mike\s+)?open\s+([a-zA-Z0-9_\-\.\s]+)$", norm)
+        )
         if open_app:
-            target_app = open_app.group(1).strip()
-            # Don't match special keywords
-            if target_app not in ["youtube", "spotify", "music", "whatsapp"]:
-                return IntentMatch(
-                    intent_name="open_app",
-                    tool_name="open_app",
-                    parameters={"app_name": target_app},
-                )
+            target_app = open_app.group(1).strip().lower()
+            # Only trigger open_app if target is known or a plausible app name (not stop words or question words)
+            if target_app not in STOP_WORDS and not any(q in target_app for q in ["how", "what", "who", "why", "when", "language", "program", "code"]):
+                if target_app in KNOWN_APP_KEYWORDS or len(target_app.split()) <= 2:
+                    return IntentMatch(
+                        intent_name="open_app",
+                        tool_name="open_app",
+                        parameters={"app_name": target_app},
+                    )
 
         close_app = re.match(r"^(?:mike\s+)?close\s+([a-zA-Z0-9_\-\.\s]+)$", norm)
         if close_app:
-            target_app = close_app.group(1).strip()
-            return IntentMatch(
-                intent_name="close_app",
-                tool_name="close_app",
-                parameters={"app_name": target_app},
-            )
+            target_app = close_app.group(1).strip().lower()
+            if target_app not in STOP_WORDS:
+                return IntentMatch(
+                    intent_name="close_app",
+                    tool_name="close_app",
+                    parameters={"app_name": target_app},
+                )
 
         # 10. Mouse Scrolling: "scroll down", "scroll up"
         scroll_match = re.match(r"^(?:mike\s+)?scroll\s+(up|down|left|right)$", norm)

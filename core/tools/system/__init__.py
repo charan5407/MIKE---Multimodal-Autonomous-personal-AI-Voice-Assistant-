@@ -16,11 +16,14 @@ from core.tools.system.clipboard_keyboard import (
 from core.tools.system.files import CopyFileTool, DeleteFileTool, MoveFileTool
 from core.tools.system.lock import LockWorkstationTool
 from core.tools.system.volume import GetVolumeTool, SetVolumeTool, ToggleMuteTool
+from core.tools.system.laptop_manager import LaptopManagerTool
 
 
 def register_system_tools():
     """Registers all system automation tools into the central tool registry."""
     tools = [
+        # Laptop Manager
+        LaptopManagerTool(),
         # Volume & Audio
         SetVolumeTool(),
         GetVolumeTool(),

@@ -70,10 +70,10 @@ class AudioStreamManager:
             pass
 
         # Calculate RMS amplitude for UI / HUD
-        data_float = indata.astype(np.float32)
+        data_float = indata.astype(np.float32) / 32768.0
         rms = np.sqrt(np.mean(np.square(data_float)))
-        # Normalize roughly between 0.0 and 1.0
-        self._current_rms = float(min(1.0, rms * 15.0))
+        # Normalize roughly between 0.0 and 1.0 (speech peaks around 0.05-0.15)
+        self._current_rms = float(min(1.0, rms * 8.0))
 
         # Flatten mono channel and copy to prevent buffer overwrite
         chunk = indata[:, 0].copy()

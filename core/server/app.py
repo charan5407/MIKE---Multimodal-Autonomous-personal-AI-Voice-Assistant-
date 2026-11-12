@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from typing import Any, Dict, Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from core.brain.router import router as llm_router
@@ -63,6 +64,7 @@ async def lifespan(app: FastAPI):
     from core.tools.search import register_search_tools
     from core.tools.system import register_system_tools
     from core.tools.whatsapp import register_whatsapp_tools
+    from core.tools.multimodal import register_multimodal_tools
 
     register_system_tools()
     register_media_tools()
@@ -74,6 +76,7 @@ async def lifespan(app: FastAPI):
     register_finance_tools()
     register_profile_tools()
     register_memory_tools()
+    register_multimodal_tools()
 
     # Startup: wire up coordinator callbacks to WebSocket
     voice_coordinator.on_state_change = lambda s: asyncio.create_task(
@@ -115,6 +118,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve generated multimodal media (images, videos) via standard HTTP URLs
+generated_media_dir = settings.data_dir / "generated_images"
+generated_media_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(generated_media_dir)), name="media")
 
 
 @app.get("/health")
@@ -173,6 +181,67 @@ async def action_chat(req: ChatRequest):
         voice_coordinator._handle_user_speech(audio=None, direct_text=req.message)
     )
     return {"status": "processing", "query": req.message}
+
+
+class ProjectOpenRequest(BaseModel):
+    path: str
+
+
+# ==============================================================================
+# Chat History & Project Artifacts Endpoints (ChatGPT-Style Sidebar Support)
+# ==============================================================================
+
+@app.get("/api/history")
+async def get_chat_history():
+    from core.memory.history_manager import history_manager
+    return {"sessions": history_manager.list_sessions()}
+
+
+@app.post("/api/history/new")
+async def create_new_chat():
+    from core.memory.history_manager import history_manager
+    new_sess = history_manager.create_session()
+    voice_coordinator._conversation_history.clear()
+    voice_coordinator._last_interaction_time = 0.0
+    voice_coordinator._is_active_conversation = False
+    await ws_manager.broadcast("transcript", {"text": "", "is_final": True})
+    await ws_manager.broadcast("state_change", {"state": AssistantState.IDLE.value})
+    return {"status": "created", "session": new_sess}
+
+
+@app.get("/api/history/{session_id}")
+async def get_session_details(session_id: str):
+    from core.memory.history_manager import history_manager
+    sess = history_manager.get_session(session_id)
+    if not sess:
+        return {"error": "Session not found"}
+    return {"session": sess}
+
+
+@app.delete("/api/history/{session_id}")
+async def delete_chat_session(session_id: str):
+    from core.memory.history_manager import history_manager
+    success = history_manager.delete_session(session_id)
+    return {"status": "deleted" if success else "not_found"}
+
+
+@app.get("/api/projects")
+async def get_projects():
+    from core.memory.history_manager import history_manager
+    return {"projects": history_manager.list_projects()}
+
+
+@app.post("/api/projects/open")
+async def open_project_file(req: ProjectOpenRequest):
+    from core.memory.history_manager import history_manager
+    res = history_manager.open_in_vscode(req.path)
+    return res
+
+
+@app.get("/api/images")
+async def get_generated_images():
+    from core.memory.history_manager import history_manager
+    return {"images": history_manager.list_images()}
 
 
 @app.post("/api/settings")

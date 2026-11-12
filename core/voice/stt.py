@@ -111,17 +111,37 @@ class STTEngine:
         else:
             audio_float = audio.astype(np.float32)
 
+        audio_float = np.ascontiguousarray(audio_float.flatten(), dtype=np.float32)
+
         start_time = time.perf_counter()
+        domain_prompt = (
+            "MIKE AI desktop assistant for Charan. Python, VS Code, Visual Studio Code, "
+            "linked list, bubble sort, binary search, algorithms, data structures, "
+            "YouTube, Spotify, WhatsApp, open application, system volume, "
+            "how many languages do you speak, what can you do, who are you."
+        )
+
         segments, info = self._model.transcribe(
             audio_float,
-            beam_size=1,
+            beam_size=2,
             language="en",
             temperature=0.0,
+            initial_prompt=domain_prompt,
+            condition_on_previous_text=False,
+            no_speech_threshold=0.6,
+            compression_ratio_threshold=2.4,
             vad_filter=False,  # We handle VAD upstream for low latency
         )
 
         texts = [seg.text.strip() for seg in segments if seg.text.strip()]
         full_text = " ".join(texts).strip()
+
+        # Phonetic corrections for common assistant mishearings
+        if full_text:
+            import re
+            full_text = re.sub(r"\b(?:mic|mack|maik)\b", "Mike", full_text, flags=re.IGNORECASE)
+            full_text = re.sub(r"\b(?:piece\s+code|peace\s+code)\b", "VS Code", full_text, flags=re.IGNORECASE)
+
         latency_ms = (time.perf_counter() - start_time) * 1000
 
         return full_text, round(latency_ms, 2)
